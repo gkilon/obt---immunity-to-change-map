@@ -1,16 +1,25 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
+import { GOOGLE_GENAI_API_KEY } from '../config';
 
 // ============================================================================
 // 🔑 Gemini API Setup
 // ============================================================================
 
 const getAiClient = () => {
-  // Access the API key strictly from the environment variable
-  const apiKey = process.env.API_KEY;
+  // 1. Try accessing via Environment Variable (Vite .env)
+  let apiKey = process.env.API_KEY;
+  
+  // 2. Fallback: Check config.ts if env var is missing or empty
+  // This supports users who paste the key directly into config.ts
+  if (!apiKey || apiKey === "undefined") {
+    if (GOOGLE_GENAI_API_KEY && GOOGLE_GENAI_API_KEY !== "YOUR_API_KEY_HERE") {
+      apiKey = GOOGLE_GENAI_API_KEY;
+    }
+  }
   
   if (!apiKey) {
-    console.error("Gemini API Key is missing in process.env.API_KEY");
+    console.error("Gemini API Key is missing. Checked process.env.API_KEY and config.ts");
     return null;
   }
   
@@ -24,7 +33,7 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
     
     if (!ai) {
       return `שגיאת מערכת: מפתח API לא נמצא. 
-נא לוודא שהוגדר משתנה סביבה בשם API_KEY בפרויקט.`;
+נא לוודא שהמפתח מוגדר בקובץ config.ts או בקובץ .env`;
     }
     
     const systemInstruction = `
@@ -70,7 +79,7 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
     const ai = getAiClient();
     
     if (!ai) {
-      throw new Error("מפתח API חסר");
+      throw new Error("מפתח API חסר. בדוק את קובץ config.ts");
     }
 
     let context = "";
