@@ -114,22 +114,22 @@ const App: React.FC = () => {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Google Login failed", error);
-      let msg = "התחברות עם גוגל נכשלה.";
       
+      let msg = "התחברות עם גוגל נכשלה.";
+      const errorCode = error.code || "unknown";
+
       // Specific Error Handling
-      if (error.code === 'auth/popup-closed-by-user') {
-        msg = "חלון ההתחברות נסגר לפני סיום הפעולה.";
-      } else if (error.code === 'auth/unauthorized-domain') {
-        msg = "שגיאת דומיין: יש להוסיף את הכתובת לרשימת Authorized Domains ב-Firebase.";
-      } else if (error.code === 'auth/invalid-api-key' || error.message.includes('API key')) {
-        msg = "חסרה הגדרת Firebase תקינה בקוד (firebase.ts). אנא עדכן את מפתחות הפרויקט.";
-      } else if (error.code === 'auth/operation-not-allowed') {
-        msg = "התחברות עם גוגל אינה מאופשרת בפרויקט ה-Firebase שלך.";
-      } else if (error.message && error.message.includes('configuration')) {
-         msg = "שגיאת קונפיגורציה: בדוק את קובץ firebase.ts";
+      if (errorCode === 'auth/popup-closed-by-user') {
+        msg = "חלון ההתחברות נסגר על ידי המשתמש.";
+      } else if (errorCode === 'auth/unauthorized-domain') {
+        msg = "הדומיין הנוכחי אינו מאושר במסוף Firebase.";
+      } else if (errorCode === 'auth/invalid-api-key' || errorCode === 'auth/api-key-not-valid-please-pass-a-valid-api-key') {
+        msg = "מפתח API של Firebase חסר או שגוי. ודא שקובץ .env מוגדר כראוי.";
+      } else if (errorCode === 'auth/operation-not-allowed') {
+        msg = "התחברות Google לא הופעלה בפרויקט ה-Firebase שלך.";
       }
 
-      setAuthError(msg);
+      setAuthError(`${msg} (שגיאה: ${errorCode})`);
     } finally {
       setAuthLoading(false);
     }
@@ -148,15 +148,17 @@ const App: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Auth error", error);
-      let msg = "אירעה שגיאה. נסה שנית.";
-      if (error.code === 'auth/wrong-password') msg = "סיסמה שגויה.";
-      if (error.code === 'auth/user-not-found') msg = "משתמש לא נמצא.";
-      if (error.code === 'auth/email-already-in-use') msg = "האימייל כבר קיים במערכת.";
-      if (error.code === 'auth/weak-password') msg = "סיסמה חלשה מדי (לפחות 6 תווים).";
-      if (error.code === 'auth/invalid-email') msg = "כתובת אימייל לא תקינה.";
-      if (error.code === 'auth/invalid-api-key' || error.message.includes('API key')) msg = "חסרה הגדרת Firebase (firebase.ts).";
-      if (error.code === 'auth/network-request-failed') msg = "שגיאת תקשורת. בדוק את החיבור לאינטרנט.";
-      setAuthError(msg);
+      const errorCode = error.code;
+      let msg = "אירעה שגיאה.";
+      
+      if (errorCode === 'auth/wrong-password') msg = "סיסמה שגויה.";
+      if (errorCode === 'auth/user-not-found') msg = "משתמש לא נמצא.";
+      if (errorCode === 'auth/email-already-in-use') msg = "האימייל כבר קיים במערכת.";
+      if (errorCode === 'auth/weak-password') msg = "סיסמה חלשה מדי.";
+      if (errorCode === 'auth/invalid-email') msg = "כתובת אימייל לא תקינה.";
+      if (errorCode === 'auth/invalid-api-key') msg = "הגדרות Firebase חסרות.";
+
+      setAuthError(`${msg} (${errorCode})`);
     } finally {
       setAuthLoading(false);
     }
@@ -355,9 +357,9 @@ const App: React.FC = () => {
               </div>
 
               {authError && (
-                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
-                  <AlertCircle size={16} />
-                  {authError}
+                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2 text-right dir-rtl">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>{authError}</span>
                 </div>
               )}
 
