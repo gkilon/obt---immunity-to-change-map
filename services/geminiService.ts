@@ -2,7 +2,8 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
 
 const getAiClient = () => {
-  // @ts-ignore - process is available in the environment as per guidelines
+  // Use process.env.API_KEY directly as per guidelines.
+  // Assume it is pre-configured and valid.
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
@@ -44,8 +45,8 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
     return response.text || "לא התקבלה תשובה מהמודל.";
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    if (error.message?.includes("API Key")) return "שגיאה: מפתח ה-API חסר.";
-    return `אירעה שגיאה: ${error.message || "שגיאה לא ידועה"}`;
+    // Return the clean error message to the UI
+    return `שגיאה: ${error.message || "תקלה בתקשורת עם ה-AI"}`;
   }
 };
 
@@ -130,6 +131,7 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
     return response.text || "לא התקבלה תשובה.";
   } catch (error: any) {
     console.error("Gemini Suggestion Error:", error);
+    // Throwing here so the UI catches it in the modal
     throw new Error(error.message || "שגיאה ביצירת הצעות");
   }
 };

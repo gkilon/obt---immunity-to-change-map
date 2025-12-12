@@ -120,9 +120,11 @@ const App: React.FC = () => {
       if (error.code === 'auth/popup-closed-by-user') {
         msg = "חלון ההתחברות נסגר לפני סיום הפעולה.";
       } else if (error.code === 'auth/unauthorized-domain') {
-        msg = "שגיאת דומיין: יש להוסיף את כתובת האתר הנוכחית לרשימת Authorized Domains ב-Firebase Console.";
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        msg = "ישנה בקשת התחברות פתוחה, אנא נסה שוב.";
+        msg = "שגיאת דומיין: יש להוסיף את הכתובת לרשימת Authorized Domains ב-Firebase.";
+      } else if (error.code === 'auth/invalid-api-key') {
+        msg = "שגיאת קונפיגורציה: נראה שקובץ firebase.ts לא עודכן עם המפתחות שלך.";
+      } else if (error.code === 'auth/operation-not-allowed') {
+        msg = "התחברות עם גוגל אינה מאופשרת בפרויקט ה-Firebase שלך.";
       } else if (error.message && error.message.includes('configuration')) {
          msg = "שגיאת קונפיגורציה: בדוק את קובץ firebase.ts";
       }
@@ -152,6 +154,7 @@ const App: React.FC = () => {
       if (error.code === 'auth/email-already-in-use') msg = "האימייל כבר קיים במערכת.";
       if (error.code === 'auth/weak-password') msg = "סיסמה חלשה מדי (לפחות 6 תווים).";
       if (error.code === 'auth/invalid-email') msg = "כתובת אימייל לא תקינה.";
+      if (error.code === 'auth/invalid-api-key') msg = "שגיאת קונפיגורציה: קובץ firebase.ts אינו מעודכן.";
       if (error.code === 'auth/network-request-failed') msg = "שגיאת תקשורת. בדוק את החיבור לאינטרנט.";
       setAuthError(msg);
     } finally {
@@ -187,7 +190,8 @@ const App: React.FC = () => {
       setActiveSuggestion(suggestion);
       setAiStatus(AnalysisStatus.IDLE);
     } catch (e: any) {
-      setActiveSuggestion("שגיאה בקבלת הצעות: " + (e.message || "שגיאה כללית"));
+      // Use clean message from error
+      setActiveSuggestion(`שגיאה בקבלת הצעות:\n${e.message}`);
       setAiStatus(AnalysisStatus.ERROR);
     }
   };
