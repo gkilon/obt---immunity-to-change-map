@@ -168,12 +168,13 @@ const App: React.FC = () => {
 
   const handleAnalysis = async () => {
     setAiStatus(AnalysisStatus.LOADING);
+    setAiMessage('');
     try {
       const result = await analyzeITCMap(data);
       setAiMessage(result);
       setAiStatus(AnalysisStatus.SUCCESS);
-    } catch (e) {
-      setAiMessage("אירעה שגיאה בניתוח הנתונים.");
+    } catch (e: any) {
+      setAiMessage(e.message || "אירעה שגיאה בניתוח הנתונים.");
       setAiStatus(AnalysisStatus.ERROR);
     }
   };
@@ -185,8 +186,8 @@ const App: React.FC = () => {
       const suggestion = await generateSuggestions(field, data);
       setActiveSuggestion(suggestion);
       setAiStatus(AnalysisStatus.IDLE);
-    } catch (e) {
-      setActiveSuggestion("שגיאה בקבלת הצעות");
+    } catch (e: any) {
+      setActiveSuggestion("שגיאה בקבלת הצעות: " + (e.message || "שגיאה כללית"));
       setAiStatus(AnalysisStatus.ERROR);
     }
   };
@@ -281,13 +282,18 @@ const App: React.FC = () => {
         
         {/* AI Analysis/Coaching Box */}
         {(aiMessage || aiStatus === AnalysisStatus.LOADING) && (
-           <div className="mb-8 bg-white border border-brand-100 rounded-xl shadow-lg p-6 relative overflow-hidden animate-fade-in">
-              <div className="absolute top-0 right-0 w-2 h-full bg-brand-500"></div>
-              <h2 className="text-xl font-bold text-brand-800 mb-2 flex items-center gap-2">
+           <div className={`mb-8 bg-white border ${aiStatus === AnalysisStatus.ERROR ? 'border-red-300 bg-red-50' : 'border-brand-100'} rounded-xl shadow-lg p-6 relative overflow-hidden animate-fade-in`}>
+              <div className={`absolute top-0 right-0 w-2 h-full ${aiStatus === AnalysisStatus.ERROR ? 'bg-red-500' : 'bg-brand-500'}`}></div>
+              <h2 className={`text-xl font-bold mb-2 flex items-center gap-2 ${aiStatus === AnalysisStatus.ERROR ? 'text-red-800' : 'text-brand-800'}`}>
                 {aiStatus === AnalysisStatus.LOADING ? (
                   <>
                     <RefreshCw className="animate-spin" size={20} />
                     <span>המאמן הדיגיטלי חושב...</span>
+                  </>
+                ) : aiStatus === AnalysisStatus.ERROR ? (
+                   <>
+                    <AlertCircle className="text-red-500" size={20} />
+                    <span>שגיאה</span>
                   </>
                 ) : (
                   <>

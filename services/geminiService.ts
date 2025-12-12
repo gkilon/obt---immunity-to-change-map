@@ -2,71 +2,134 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
 
 const getAiClient = () => {
+  // @ts-ignore - process is available in the environment as per guidelines
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
+// Main analysis of the whole map
 export const analyzeITCMap = async (data: ITCData): Promise<string> => {
-  const ai = getAiClient();
-  
-  const prompt = `
-    You are an expert organizational psychologist and coach specializing in the "Immunity to Change" (Kegan & Lahey) model.
-    Analyze the user's current Immunity to Change map (in Hebrew) and provide a short, supportive, and insightful suggestion for the next step or a missing piece.
-    
-    Current Map:
-    1. Improvement Goal (מטרת השיפור): ${data.column1 || "Empty"}
-    2. Behaviors (התנהגויות מעכבות): ${data.column2 || "Empty"}
-    3. Worries (תיבת הדאגות): ${data.column3_worries || "Empty"}
-    4. Hidden Commitments (מחויבות נסתרת): ${data.column3_commitments || "Empty"}
-    5. Big Assumptions (הנחות יסוד): ${data.column4 || "Empty"}
-
-    Instructions:
-    - If the map is mostly empty, suggest a starting point for the Goal.
-    - If they have a Goal but no behaviors, ask what they are doing instead.
-    - If they have behaviors, help them uncover the "Worry" that drives those behaviors.
-    - If the map is full, offer a "Big Assumption" test they could try.
-    - Keep the tone professional, empathetic, and coaching-oriented.
-    - Respond in Hebrew.
-    - Keep it concise (max 3-4 sentences).
-  `;
-
   try {
+    const ai = getAiClient();
+    
+    const systemInstruction = `
+      You are an expert organizational psychologist specializing in Robert Kegan and Lisa Lahey's "Immunity to Change" model.
+      Your goal is to review the user's map and help them deepen their logic.
+      Be supportive, challenging, and concise. Write in Hebrew.
+    `;
+    
+    const prompt = `
+      Current Map Details:
+      1. Goal: ${data.column1 || "Empty"}
+      2. Behaviors: ${data.column2 || "Empty"}
+      3. Worries: ${data.column3_worries || "Empty"}
+      4. Hidden Commitments: ${data.column3_commitments || "Empty"}
+      5. Assumptions: ${data.column4 || "Empty"}
+
+      Task:
+      - Look for the logical "gap" or "leak" in the map.
+      - If Column 1 is present but 2 is empty, ask: "What are you doing instead of your goal?"
+      - If Column 2 is present but 3 is empty, ask: "Imagine doing the opposite of Col 2 - what is the scary feeling that comes up?"
+      - If Column 3 is present, check if the Commitment (Part B) actually protects against the Worry (Part A).
+      - If Column 4 is present, check if it truly makes the Commitment necessary.
+    `;
+
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
+      config: {
+        systemInstruction: systemInstruction,
+      }
     });
+
     return response.text || "לא התקבלה תשובה מהמודל.";
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    throw new Error("שגיאה בתקשורת עם הבינה המלאכותית");
+  } catch (error: any) {
+    console.error("Gemini Analysis Error:", error);
+    if (error.message?.includes("API Key")) return "שגיאה: מפתח ה-API חסר.";
+    return `אירעה שגיאה: ${error.message || "שגיאה לא ידועה"}`;
   }
 };
 
+// Context-aware suggestions for specific fields
 export const generateSuggestions = async (field: keyof ITCData, currentData: ITCData): Promise<string> => {
-  const ai = getAiClient();
-
-  let focusInstruction = "";
-  switch(field) {
-    case 'column1': focusInstruction = "Suggest 3 powerful improvement goals based on common leadership challenges."; break;
-    case 'column2': focusInstruction = `Based on the goal "${currentData.column1}", suggest 3 things a person might do or not do that prevents this goal.`; break;
-    case 'column3_worries': focusInstruction = `Based on the behaviors "${currentData.column2}", what might be the deep underlying worry or fear (The 'Worries Box')? Provide 2-3 examples.`; break;
-    case 'column3_commitments': focusInstruction = `Based on the worry "${currentData.column3_worries}", what is the competing hidden commitment (e.g., 'I am committed to not looking foolish')?`; break;
-    case 'column4': focusInstruction = `Based on the hidden commitment "${currentData.column3_commitments}", what is the Big Assumption being made (e.g., 'If I delegate, things will fall apart')?`; break;
-  }
-
-  const prompt = `
-    Context: Immunity to Change map (Kegan & Lahey).
-    Task: ${focusInstruction}
-    Language: Hebrew.
-    Format: Bullet points.
-  `;
-
   try {
+    const ai = getAiClient();
+    let context = "";
+    let task = "";
+
+    switch(field) {
+      case 'column1': // Goal
+        task = `
+          The user is starting the process.
+          Suggest 3 examples of powerful, adaptive "Improvement Goals" (מטרת השיפור) formatted as: "אני מחויב ל..." (I am committed to...).
+          Examples should cover: Delegation, Work-Life Balance, or Assertiveness.
+        `;
+        break;
+
+      case 'column2': // Doing/Not Doing
+        context = `User's Goal (Col 1): "${currentData.column1}"`;
+        task = `
+          The user wants to achieve the goal above but isn't succeeding yet.
+          Suggest 3 specific behaviors (what they are doing or NOT doing) that effectively work AGAINST this goal.
+          Format: "במקום זאת, אני..." (Instead, I...).
+          Example logic: If goal is delegation, behavior might be "I micromanage every email".
+        `;
+        break;
+
+      case 'column3_worries': // Worries
+        context = `User's Behaviors (Col 2): "${currentData.column2}"`;
+        task = `
+          We need to find the "Immunity".
+          Ask the user to imagine doing the OPPOSITE of their behaviors listed above.
+          Suggest 3 distinct "Worries" or "Fears" that might arise if they stopped those behaviors.
+          Format: "אני דואג ש..." (I am worried that...).
+          Focus on deep fears: rejection, loss of control, looking incompetent.
+        `;
+        break;
+
+      case 'column3_commitments': // Hidden Commitments
+        context = `User's Worry (Col 3 Part A): "${currentData.column3_worries}"`;
+        task = `
+          Based on the specific worry above, what is the Hidden Commitment that protects the user?
+          This represents the "Immune System".
+          Suggest 3 Hidden Commitments.
+          Format: "אני מחויב ל..." (I am committed to [preventing the worry]).
+          Logic: If worry is "loss of control", commitment is "I am committed to being in control at all times".
+        `;
+        break;
+
+      case 'column4': // Big Assumptions
+        context = `User's Hidden Commitment (Col 3 Part B): "${currentData.column3_commitments}"`;
+        task = `
+          What is the "Big Assumption" that makes the hidden commitment above feel like an absolute truth?
+          Suggest 3 assumptions that anchor this commitment.
+          Format: "אני מניח ש..." (I assume that...).
+          Logic: If commitment is "staying in control", assumption is "I assume that if I lose control, the project will fail and I will be fired".
+        `;
+        break;
+    }
+
+    const systemInstruction = `
+      Role: You are an expert Immunity to Change Coach.
+      Language: Hebrew.
+      Context: ${context}
+      
+      Output instructions:
+      - Provide exactly 3 bullet points.
+      - Keep them short and punchy.
+      - Directly relate to the input context provided.
+    `;
+
     const response: GenerateContentResponse = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: prompt,
+      contents: task,
+      config: {
+        systemInstruction: systemInstruction,
+      }
     });
-    return response.text || "";
-  } catch (error) {
-    return "לא ניתן ליצור הצעות כרגע.";
+    
+    return response.text || "לא התקבלה תשובה.";
+  } catch (error: any) {
+    console.error("Gemini Suggestion Error:", error);
+    throw new Error(error.message || "שגיאה ביצירת הצעות");
   }
 };
