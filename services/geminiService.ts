@@ -7,23 +7,41 @@ import { GOOGLE_GENAI_API_KEY } from '../config';
 // ============================================================================
 
 const getAiClient = () => {
-  // 1. Try accessing via Environment Variable (Vite .env)
+  // 1. Try accessing via Environment Variable (Injected by Vite)
   let apiKey = process.env.API_KEY;
   
-  // 2. Fallback: Check config.ts if env var is missing or empty
-  // This supports users who paste the key directly into config.ts
-  if (!apiKey || apiKey === "undefined") {
+  // 2. Fallback: Check config.ts if env var is missing/undefined/empty
+  if (!apiKey || apiKey === "undefined" || apiKey === "") {
     if (GOOGLE_GENAI_API_KEY && GOOGLE_GENAI_API_KEY !== "YOUR_API_KEY_HERE") {
       apiKey = GOOGLE_GENAI_API_KEY;
     }
   }
   
-  if (!apiKey) {
-    console.error("Gemini API Key is missing. Checked process.env.API_KEY and config.ts");
+  if (!apiKey || apiKey === "undefined") {
+    console.error("Gemini API Key is missing. Please check .env or config.ts");
     return null;
   }
   
   return new GoogleGenAI({ apiKey });
+};
+
+// Helper to translate errors
+const formatError = (error: any): string => {
+  const msg = error.message || error.toString();
+  
+  if (msg.includes('403') || msg.includes('PERMISSION_DENIED') || msg.includes('disabled')) {
+    return 'שגיאת הרשאה (403): ה-API של גוגל חסום או לא מופעל עבור המפתח הזה.\nייתכן שיש לגשת ל-Google Cloud Console ולהפעיל את "Generative Language API", או לבדוק שהמפתח תקין.';
+  }
+  
+  if (msg.includes('400') || msg.includes('INVALID_ARGUMENT')) {
+    return 'שגיאת נתונים (400): הבקשה לא תקינה. נסה לרענן את העמוד.';
+  }
+
+  if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+    return 'עומס על המערכת (429): חרגת ממכסת הבקשות. אנא נסה שוב בעוד מספר דקות.';
+  }
+
+  return msg; // Return original if unknown
 };
 
 // Main analysis of the whole map
@@ -69,7 +87,7 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
     return response.text || "לא התקבלה תשובה מהמודל.";
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    return `שגיאה בתקשורת עם ה-AI: ${error.message}`;
+    return `תקלה בקבלת תשובה:\n${formatError(error)}`;
   }
 };
 
@@ -158,6 +176,6 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
     return response.text || "לא התקבלה תשובה.";
   } catch (error: any) {
     console.error("Gemini Suggestion Error:", error);
-    throw new Error(error.message || "שגיאה ביצירת הצעות");
+    throw new Error(formatError(error));
   }
 };
