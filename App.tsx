@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ITCData, AnalysisStatus } from './types';
 import { analyzeITCMap, generateSuggestions } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { Save, FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, CloudOff } from 'lucide-react';
+import { Save, FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, CloudOff, X, Mail, Lock } from 'lucide-react';
 import { auth, db } from './firebase';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 // Default empty state
@@ -22,6 +22,14 @@ const App: React.FC = () => {
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Auth Modal State
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
   const [aiStatus, setAiStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [aiMessage, setAiMessage] = useState<string>('');
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
@@ -35,6 +43,12 @@ const App: React.FC = () => {
         const saved = localStorage.getItem('obt_itc_data');
         if (saved) setData(JSON.parse(saved));
         setIsDataLoaded(true);
+      } else {
+        // Close modal on successful login
+        setShowLoginModal(false);
+        setEmail('');
+        setPassword('');
+        setAuthError('');
       }
     });
     return () => unsubscribe();
@@ -48,16 +62,7 @@ const App: React.FC = () => {
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const remoteData = docSnap.data() as ITCData;
-        // Only update state if remote data is different to avoid cursor jumps
-        // Simple check: we rely on React's state merging, but for text inputs
-        // receiving external updates while typing can be tricky.
-        // For this implementation, we simply load the data.
-        // Optimally, we check if the timestamp is newer.
-        // Here we just load it.
         setData(prev => {
-           // We only overwrite if it's drastically different or initial load
-           // to prevent overwriting active typing in a race condition.
-           // For simplicity in this demo: we accept the server state.
            if (JSON.stringify(prev) !== JSON.stringify(remoteData)) {
              return remoteData;
            }
@@ -100,20 +105,64 @@ const App: React.FC = () => {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleLogin = async () => {
+  // Auth Handlers
+  const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    setAuthError(''); // Clear previous errors
     try {
+      setAuthLoading(true);
       await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed", error);
-      alert("התחברות נכשלה, נסה שוב.");
+    } catch (error: any) {
+      console.error("Google Login failed", error);
+      let msg = "התחברות עם גוגל נכשלה.";
+      
+      // Specific Error Handling
+      if (error.code === 'auth/popup-closed-by-user') {
+        msg = "חלון ההתחברות נסגר לפני סיום הפעולה.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+        msg = "שגיאת דומיין: יש להוסיף את כתובת האתר הנוכחית לרשימת Authorized Domains ב-Firebase Console.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        msg = "ישנה בקשת התחברות פתוחה, אנא נסה שוב.";
+      } else if (error.message && error.message.includes('configuration')) {
+         msg = "שגיאת קונפיגורציה: בדוק את קובץ firebase.ts";
+      }
+
+      setAuthError(msg);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      if (authMode === 'register') {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (error: any) {
+      console.error("Auth error", error);
+      let msg = "אירעה שגיאה. נסה שנית.";
+      if (error.code === 'auth/wrong-password') msg = "סיסמה שגויה.";
+      if (error.code === 'auth/user-not-found') msg = "משתמש לא נמצא.";
+      if (error.code === 'auth/email-already-in-use') msg = "האימייל כבר קיים במערכת.";
+      if (error.code === 'auth/weak-password') msg = "סיסמה חלשה מדי (לפחות 6 תווים).";
+      if (error.code === 'auth/invalid-email') msg = "כתובת אימייל לא תקינה.";
+      if (error.code === 'auth/network-request-failed') msg = "שגיאת תקשורת. בדוק את החיבור לאינטרנט.";
+      setAuthError(msg);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
   const handleLogout = async () => {
     if (confirm("האם להתנתק מהמערכת?")) {
       await signOut(auth);
-      setData(INITIAL_DATA); // Clear data on logout for privacy
+      setData(INITIAL_DATA);
     }
   };
 
@@ -174,23 +223,22 @@ const App: React.FC = () => {
           <div className="flex gap-2 items-center">
             {/* Login/Logout Section */}
             {!user ? (
-              <button onClick={handleLogin} className="flex items-center gap-2 bg-white text-brand-900 px-4 py-2 rounded-full transition-all shadow-md font-bold text-sm hover:bg-brand-50">
+              <button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 bg-white text-brand-900 px-4 py-2 rounded-full transition-all shadow-md font-bold text-sm hover:bg-brand-50">
                 <LogIn size={16} />
                 <span>התחבר לשמירה</span>
               </button>
             ) : (
               <div className="flex items-center gap-2 mr-2">
                  <div className="hidden md:flex flex-col items-end text-xs text-brand-100">
-                    <span className="font-bold">שלום, {user.displayName?.split(' ')[0]}</span>
-                    <span>{user.email}</span>
+                    <span className="font-bold">{user.email?.split('@')[0]}</span>
                  </div>
-                 {user.photoURL ? (
-                   <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border-2 border-brand-200" />
-                 ) : (
-                   <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center font-bold text-white border-2 border-brand-200">
-                     {user.displayName?.[0]}
-                   </div>
-                 )}
+                 <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center font-bold text-white border-2 border-brand-200 uppercase overflow-hidden">
+                     {user.photoURL ? (
+                       <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
+                     ) : (
+                       user.email?.[0] || 'U'
+                     )}
+                 </div>
                  <button onClick={handleLogout} className="bg-white/10 hover:bg-red-500/80 p-2 rounded-full transition-colors text-white" title="התנתק">
                    <LogOut size={16} />
                  </button>
@@ -201,7 +249,7 @@ const App: React.FC = () => {
 
             <button onClick={handleAnalysis} className="flex items-center gap-2 bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 rounded-md transition-all shadow-md font-medium text-sm">
               <BrainCircuit size={16} />
-              <span className="hidden sm:inline">ניתוח AI</span>
+              <span className="hidden sm:inline">ניתוח כללי</span>
             </button>
              <button onClick={() => window.print()} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-md transition-all font-medium text-sm backdrop-blur-sm">
               <FileDown size={16} />
@@ -224,7 +272,7 @@ const App: React.FC = () => {
                </div>
                <div className="mr-3">
                  <p className="text-sm text-yellow-700 font-medium">
-                   אתה עובד במצב אורח. הנתונים נשמרים בדפדפן זה בלבד. <button onClick={handleLogin} className="underline font-bold hover:text-yellow-800">התחבר עכשיו</button> כדי לשמור ולגשת למפה מכל מכשיר.
+                   אתה עובד במצב אורח. הנתונים נשמרים בדפדפן זה בלבד. <button onClick={() => setShowLoginModal(true)} className="underline font-bold hover:text-yellow-800">התחבר עכשיו</button> כדי לשמור ולגשת למפה מכל מכשיר.
                  </p>
                </div>
              </div>
@@ -274,6 +322,128 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* Login Modal */}
+        {showLoginModal && (
+          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
+              <button onClick={() => setShowLoginModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={24} />
+              </button>
+              
+              <div className="text-center mb-6">
+                <div className="bg-brand-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <LogIn className="text-brand-600" size={24} />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">
+                  {authMode === 'login' ? 'התחברות לחשבון' : 'יצירת חשבון חדש'}
+                </h3>
+                <p className="text-slate-500 text-sm mt-1">
+                  שמור את המפה שלך וגש אליה מכל מקום
+                </p>
+              </div>
+
+              {authError && (
+                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  {authError}
+                </div>
+              )}
+
+              <form onSubmit={handleEmailAuth} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">כתובת אימייל</label>
+                  <div className="relative">
+                    <Mail className="absolute right-3 top-3 text-slate-400" size={18} />
+                    <input 
+                      type="email" 
+                      required
+                      className="w-full pr-10 pl-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
+                  <div className="relative">
+                    <Lock className="absolute right-3 top-3 text-slate-400" size={18} />
+                    <input 
+                      type="password" 
+                      required
+                      className="w-full pr-10 pl-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={authLoading}
+                  className="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-brand-500/30 transition-all flex justify-center items-center gap-2"
+                >
+                  {authLoading ? <RefreshCw className="animate-spin" size={18} /> : (authMode === 'login' ? 'התחבר' : 'הירשם')}
+                </button>
+              </form>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-slate-500">או המשך עם</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={handleGoogleLogin}
+                type="button"
+                className="w-full bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
+                Google
+              </button>
+
+              <div className="mt-6 text-center text-sm text-slate-600">
+                {authMode === 'login' ? (
+                  <>
+                    אין לך עדיין חשבון?{' '}
+                    <button onClick={() => { setAuthMode('register'); setAuthError(''); }} className="text-brand-600 font-bold hover:underline">
+                      הירשם עכשיו
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    יש לך כבר חשבון?{' '}
+                    <button onClick={() => { setAuthMode('login'); setAuthError(''); }} className="text-brand-600 font-bold hover:underline">
+                      התחבר כאן
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* The Grid / Table */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 min-h-[600px]">
           
@@ -287,6 +457,7 @@ const App: React.FC = () => {
               onChange={(val) => updateField('column1', val)}
               placeholder="אני מחויב ל..."
               onAutoGenerate={() => handleGenerateSuggestion('column1')}
+              aiButtonText="צריך רעיונות למטרות?"
               heightClass="flex-1 min-h-[300px]"
               colorClass="border-blue-100 focus:border-blue-400"
             />
@@ -302,6 +473,7 @@ const App: React.FC = () => {
               onChange={(val) => updateField('column2', val)}
               placeholder="במקום זאת, אני..."
               onAutoGenerate={() => handleGenerateSuggestion('column2')}
+              aiButtonText="צריך עזרה בזיהוי ההתנהגויות?"
               heightClass="flex-1 min-h-[300px]"
               colorClass="border-blue-100 focus:border-blue-400"
             />
@@ -319,6 +491,7 @@ const App: React.FC = () => {
                 onChange={(val) => updateField('column3_worries', val)}
                 placeholder="אני דואג ש..."
                 onAutoGenerate={() => handleGenerateSuggestion('column3_worries')}
+                aiButtonText="צריך עזרה בחשיפת הדאגה?"
                 heightClass="h-48"
                 colorClass="border-red-100 focus:border-red-400 bg-red-50/50"
               />
@@ -334,6 +507,7 @@ const App: React.FC = () => {
                 onChange={(val) => updateField('column3_commitments', val)}
                 placeholder="אני מחויב ל..."
                 onAutoGenerate={() => handleGenerateSuggestion('column3_commitments')}
+                aiButtonText="מהי המחויבות הנסתרת?"
                 heightClass="h-48"
                 colorClass="border-amber-100 focus:border-amber-400 bg-amber-50/50"
               />
@@ -350,6 +524,7 @@ const App: React.FC = () => {
               onChange={(val) => updateField('column4', val)}
               placeholder="אני מניח ש..."
               onAutoGenerate={() => handleGenerateSuggestion('column4')}
+              aiButtonText="צריך עזרה בניסוח ההנחה?"
               heightClass="flex-1 min-h-[300px]"
               colorClass="border-purple-100 focus:border-purple-400"
             />
