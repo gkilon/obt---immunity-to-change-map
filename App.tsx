@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ITCData, AnalysisStatus } from './types';
 import { analyzeITCMap, generateSuggestions } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { Save, FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, CloudOff, X, Mail, Lock } from 'lucide-react';
+import { Save, FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, CloudOff, X, Mail, Lock, Settings } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -121,8 +121,8 @@ const App: React.FC = () => {
         msg = "חלון ההתחברות נסגר לפני סיום הפעולה.";
       } else if (error.code === 'auth/unauthorized-domain') {
         msg = "שגיאת דומיין: יש להוסיף את הכתובת לרשימת Authorized Domains ב-Firebase.";
-      } else if (error.code === 'auth/invalid-api-key') {
-        msg = "שגיאת קונפיגורציה: נראה שקובץ firebase.ts לא עודכן עם המפתחות שלך.";
+      } else if (error.code === 'auth/invalid-api-key' || error.message.includes('API key')) {
+        msg = "חסרה הגדרת Firebase תקינה בקוד (firebase.ts). אנא עדכן את מפתחות הפרויקט.";
       } else if (error.code === 'auth/operation-not-allowed') {
         msg = "התחברות עם גוגל אינה מאופשרת בפרויקט ה-Firebase שלך.";
       } else if (error.message && error.message.includes('configuration')) {
@@ -154,7 +154,7 @@ const App: React.FC = () => {
       if (error.code === 'auth/email-already-in-use') msg = "האימייל כבר קיים במערכת.";
       if (error.code === 'auth/weak-password') msg = "סיסמה חלשה מדי (לפחות 6 תווים).";
       if (error.code === 'auth/invalid-email') msg = "כתובת אימייל לא תקינה.";
-      if (error.code === 'auth/invalid-api-key') msg = "שגיאת קונפיגורציה: קובץ firebase.ts אינו מעודכן.";
+      if (error.code === 'auth/invalid-api-key' || error.message.includes('API key')) msg = "חסרה הגדרת Firebase (firebase.ts).";
       if (error.code === 'auth/network-request-failed') msg = "שגיאת תקשורת. בדוק את החיבור לאינטרנט.";
       setAuthError(msg);
     } finally {
@@ -271,14 +271,16 @@ const App: React.FC = () => {
         
         {!user && (
           <div className="bg-yellow-50 border-r-4 border-yellow-400 p-4 mb-6 rounded-lg shadow-sm">
-             <div className="flex">
-               <div className="flex-shrink-0">
-                 <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-               </div>
-               <div className="mr-3">
-                 <p className="text-sm text-yellow-700 font-medium">
-                   אתה עובד במצב אורח. הנתונים נשמרים בדפדפן זה בלבד. <button onClick={() => setShowLoginModal(true)} className="underline font-bold hover:text-yellow-800">התחבר עכשיו</button> כדי לשמור ולגשת למפה מכל מכשיר.
-                 </p>
+             <div className="flex justify-between items-center">
+               <div className="flex">
+                 <div className="flex-shrink-0">
+                   <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                 </div>
+                 <div className="mr-3">
+                   <p className="text-sm text-yellow-700 font-medium">
+                     אתה עובד במצב אורח. הנתונים נשמרים בדפדפן זה בלבד. <button onClick={() => setShowLoginModal(true)} className="underline font-bold hover:text-yellow-800">התחבר עכשיו</button> כדי לשמור ולגשת למפה מכל מכשיר.
+                   </p>
+                 </div>
                </div>
              </div>
            </div>

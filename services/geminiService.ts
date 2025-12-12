@@ -2,9 +2,25 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
 
 const getAiClient = () => {
-  // Use process.env.API_KEY directly as per guidelines.
-  // Assume it is pre-configured and valid.
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  let apiKey: string | undefined = undefined;
+  
+  try {
+    // Safely attempt to access process.env
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env) {
+      // @ts-ignore
+      apiKey = process.env.API_KEY;
+    }
+  } catch (e) {
+    console.warn("Failed to access process.env", e);
+  }
+
+  if (!apiKey) {
+    // Throw a specific error that the UI can catch and display in Hebrew
+    throw new Error("חסר מפתח API. לא ניתן לבצע את הפעולה ללא הגדרת process.env.API_KEY בסביבת העבודה.");
+  }
+  
+  return new GoogleGenAI({ apiKey });
 };
 
 // Main analysis of the whole map
