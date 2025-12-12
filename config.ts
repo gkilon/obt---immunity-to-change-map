@@ -2,9 +2,14 @@
 // ⚙️ קובץ הגדרות - OBT
 // ============================================================================
 
-// הוראות:
-// 1. קבל מפתח API בחינם מכאן: https://aistudio.google.com/app/apikey
-// 2. העתק את המפתח שקיבלת.
-// 3. הדבק את המפתח בתוך המרכאות בשורה למטה (במקום YOUR_API_KEY_HERE).
+// 🛑 אבטחה: המפתח הוסר מקובץ זה כדי למנוע דליפת אבטחה ב-GitHub.
+//
+// כדי להפעיל את האפליקציה:
+// 1. צור קובץ בשם ".env" בתיקייה הראשית של הפרויקט.
+// 2. הוסף לקובץ את השורה: API_KEY=YOUR_REAL_KEY_HERE
+// 3. ודא שהקובץ .env נמצא בתוך .gitignore
 
-export const GOOGLE_GENAI_API_KEY = "AIzaSyDTmffdIcWqP9h1BIkClBKq2TSnI_WFWvc";
+export const APP_CONFIG = {
+  version: "1.0.0",
+  name: "OBT Immunity Map"
+};

@@ -1,32 +1,16 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
-import { GOOGLE_GENAI_API_KEY } from '../config';
 
 // ============================================================================
 // 🔑 Gemini API Setup
 // ============================================================================
 
 const getAiClient = () => {
-  let apiKey = GOOGLE_GENAI_API_KEY;
+  // השימוש כעת הוא אך ורק דרך משתני סביבה מאובטחים
+  // @ts-ignore
+  const apiKey = process.env.API_KEY; // OR process.env.REACT_APP_API_KEY depending on your build tool
 
-  // בדיקה אם המפתח הוא עדיין ברירת המחדל
-  const isDefaultKey = !apiKey || apiKey === "YOUR_API_KEY_HERE";
-
-  // נסיון חלופי: משתני סביבה (אם קיימים בסביבת הפיתוח)
-  if (isDefaultKey) {
-    try {
-      // @ts-ignore
-      if (typeof process !== 'undefined' && process.env?.API_KEY) {
-        // @ts-ignore
-        apiKey = process.env.API_KEY;
-      }
-    } catch (e) {
-      // process is not defined
-    }
-  }
-
-  // אם עדיין אין מפתח תקין, החזר null (מצב הדגמה)
-  if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+  if (!apiKey) {
     return null; 
   }
   
@@ -42,12 +26,13 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
     if (!ai) {
       return `[מצב הדגמה - חסר מפתח API]
       
-לא הוגדר מפתח Gemini API בקובץ config.ts.
-כדי לקבל ניתוח אמיתי:
-1. פתח את הקובץ config.ts
-2. הדבק שם את המפתח שלך.
+לא נמצא מפתח Gemini API במשתני הסביבה.
+כדי לתקן זאת (בצורה מאובטחת):
+1. צור קובץ .env בתיקייה הראשית.
+2. הוסף את השורה: API_KEY=העתק_כאן_את_המפתח_שלך
+3. התחל מחדש את השרת (npm start).
 
-הנה ניתוח לדוגמה:
+הנה ניתוח לדוגמה שהיית מקבל:
 המפה שלך מראה התחלה טובה. הפער הלוגי המרכזי נמצא בין טור 2 (התנהגויות) לטור 3 (דאגות).
 שאלת מפתח: האם הדאגה שציינת בטור 3 היא באמת הדבר הכי גרוע שיקרה אם תפסיק את ההתנהגות בטור 2?`;
     }
@@ -96,8 +81,7 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
     
     // DEMO MODE
     if (!ai) {
-      return `[מצב הדגמה] חסר מפתח API.
-נא לעדכן את הקובץ config.ts עם המפתח שלך כדי לקבל הצעות אמיתיות.`;
+      return `[מצב הדגמה] חסר מפתח API במשתני הסביבה (.env).`;
     }
 
     let context = "";
