@@ -1,10 +1,11 @@
-import * as firebaseApp from "firebase/app";
+// @ts-ignore
+import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // TODO: החלף את הערכים למטה בערכים שקיבלת במסוף של Firebase
 // Go to Firebase Console -> Project Settings -> General -> Your apps -> SDK setup and configuration
-const irebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyC88w5qArQkie1ySYjLNogYOlAysKIopHo",
   authDomain: "obt-tool-fc78d.firebaseapp.com",
   projectId: "obt-tool-fc78d",
@@ -15,7 +16,7 @@ const irebaseConfig = {
 };
 
 // Initialize Firebase
-const app = firebaseApp.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
 // Initialize Services
 export const auth = getAuth(app);
