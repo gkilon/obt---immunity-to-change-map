@@ -7,18 +7,28 @@ import { GOOGLE_GENAI_API_KEY } from '../config';
 // ============================================================================
 
 const getAiClient = () => {
-  // 1. Try accessing via Environment Variable (Injected by Vite)
+  // 1. Priority: Check Local Storage (User entered via UI)
+  // This is the safest way for client-side apps to avoid exposing keys in code
+  if (typeof window !== 'undefined') {
+    const localKey = localStorage.getItem('gemini_api_key');
+    if (localKey && localKey.length > 10) {
+      return new GoogleGenAI({ apiKey: localKey });
+    }
+  }
+
+  // 2. Fallback: Environment Variable (Injected by Vite)
   let apiKey = process.env.API_KEY;
   
-  // 2. Fallback: Check config.ts if env var is missing/undefined/empty
+  // 3. Fallback: Config file (Not recommended for production, but kept for legacy)
   if (!apiKey || apiKey === "undefined" || apiKey === "") {
-    if (GOOGLE_GENAI_API_KEY && GOOGLE_GENAI_API_KEY !== "YOUR_API_KEY_HERE") {
+    if (GOOGLE_GENAI_API_KEY && GOOGLE_GENAI_API_KEY !== "YOUR_API_KEY_HERE" && GOOGLE_GENAI_API_KEY !== "") {
       apiKey = GOOGLE_GENAI_API_KEY;
     }
   }
   
   if (!apiKey || apiKey === "undefined") {
-    console.error("Gemini API Key is missing. Please check .env or config.ts");
+    // We don't return null here anymore to allow the UI to catch the specific error
+    // But connection test will fail gracefully
     return null;
   }
   
@@ -30,18 +40,42 @@ const formatError = (error: any): string => {
   const msg = error.message || error.toString();
   
   if (msg.includes('403') || msg.includes('PERMISSION_DENIED') || msg.includes('disabled')) {
-    return 'שגיאת הרשאה (403): ה-API של גוגל חסום או לא מופעל עבור המפתח הזה.\nייתכן שיש לגשת ל-Google Cloud Console ולהפעיל את "Generative Language API", או לבדוק שהמפתח תקין.';
+    return '⛔ שגיאת הרשאה (403): ה-API של גוגל חסום או שהמפתח נפסל.\nפתרון: צור מפתח חדש ב-Google AI Studio והזן אותו בהגדרות האתר.';
   }
   
-  if (msg.includes('400') || msg.includes('INVALID_ARGUMENT')) {
-    return 'שגיאת נתונים (400): הבקשה לא תקינה. נסה לרענן את העמוד.';
+  if (msg.includes('400') || msg.includes('INVALID_ARGUMENT') || msg.includes('API key not valid')) {
+    return '🔑 מפתח לא תקין (400): המפתח שהוזן שגוי.\nפתרון: בדוק בהגדרות (גלגל שיניים) שהעתקת את המפתח במלואו.';
   }
 
   if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-    return 'עומס על המערכת (429): חרגת ממכסת הבקשות. אנא נסה שוב בעוד מספר דקות.';
+    return '⏳ עומס / מכסה (429): חרגת ממכסת הבקשות החינמית לדקה/יום.\nפתרון: המתן מספר דקות ונסה שוב.';
+  }
+  
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+    return '🌐 שגיאת רשת: לא ניתן להתחבר לשרתי גוגל. בדוק את חיבור האינטרנט שלך.';
   }
 
-  return msg; // Return original if unknown
+  return `שגיאה לא ידועה: ${msg}`; // Return original if unknown
+};
+
+// --- Diagnostic Tool ---
+export const testApiConnection = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const ai = getAiClient();
+    if (!ai) {
+      return { success: false, message: "לא מוגדר מפתח API. אנא לחץ על כפתור ההגדרות (⚙️) והזן את המפתח שלך." };
+    }
+    
+    // Minimal request to test connection
+    await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: 'Test connection',
+    });
+    
+    return { success: true, message: "✅ חיבור תקין! המפתח נשמר ועובד מצוין." };
+  } catch (error: any) {
+    return { success: false, message: formatError(error) };
+  }
 };
 
 // Main analysis of the whole map
@@ -50,8 +84,8 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
     const ai = getAiClient();
     
     if (!ai) {
-      return `שגיאת מערכת: מפתח API לא נמצא. 
-נא לוודא שהמפתח מוגדר בקובץ config.ts או בקובץ .env`;
+      return `שגיאה: מפתח API חסר.
+נא ללחוץ על כפתור ההגדרות (⚙️) בראש העמוד ולהזין את מפתח ה-Gemini שלך.`;
     }
     
     const systemInstruction = `
@@ -97,7 +131,7 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
     const ai = getAiClient();
     
     if (!ai) {
-      throw new Error("מפתח API חסר. בדוק את קובץ config.ts");
+      throw new Error("מפתח API חסר. הגדר אותו בהגדרות (⚙️).");
     }
 
     let context = "";

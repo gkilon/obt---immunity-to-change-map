@@ -11,7 +11,7 @@ import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   // החלף את הערכים הללו בערכים האמיתיים שלך מ-Firebase
-  apiKey: "AIzaSyC88w5qArQkie1ySYjLNogYOlAysKIopHo",
+  apiKey: "AAIzaSyDgjGk6q8BUieAGCybYdTOBpiUIxm8JXw0",
   authDomain: "obt-tool-fc78d.firebaseapp.com",
   projectId: "obt-tool-fc78d",
   storageBucket: "obt-tool-fc78d.firebasestorage.app",
