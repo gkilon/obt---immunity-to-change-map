@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ITCData, AnalysisStatus } from './types';
 import { analyzeITCMap, generateSuggestions } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { Save, FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, CloudOff, X, Mail, Lock, Settings } from 'lucide-react';
+import { FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, X, Mail, Lock, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -108,28 +108,13 @@ const App: React.FC = () => {
   // Auth Handlers
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
-    setAuthError(''); // Clear previous errors
+    setAuthError('');
     try {
       setAuthLoading(true);
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Google Login failed", error);
-      let msg = "התחברות עם גוגל נכשלה.";
-      
-      // Specific Error Handling
-      if (error.code === 'auth/popup-closed-by-user') {
-        msg = "חלון ההתחברות נסגר לפני סיום הפעולה.";
-      } else if (error.code === 'auth/unauthorized-domain') {
-        msg = "שגיאת דומיין: יש להוסיף את הכתובת לרשימת Authorized Domains ב-Firebase.";
-      } else if (error.code === 'auth/invalid-api-key' || error.message.includes('API key')) {
-        msg = "חסרה הגדרת Firebase תקינה בקוד (firebase.ts). אנא עדכן את מפתחות הפרויקט.";
-      } else if (error.code === 'auth/operation-not-allowed') {
-        msg = "התחברות עם גוגל אינה מאופשרת בפרויקט ה-Firebase שלך.";
-      } else if (error.message && error.message.includes('configuration')) {
-         msg = "שגיאת קונפיגורציה: בדוק את קובץ firebase.ts";
-      }
-
-      setAuthError(msg);
+      setAuthError("התחברות נכשלה. אנא נסה שוב.");
     } finally {
       setAuthLoading(false);
     }
@@ -151,11 +136,7 @@ const App: React.FC = () => {
       let msg = "אירעה שגיאה. נסה שנית.";
       if (error.code === 'auth/wrong-password') msg = "סיסמה שגויה.";
       if (error.code === 'auth/user-not-found') msg = "משתמש לא נמצא.";
-      if (error.code === 'auth/email-already-in-use') msg = "האימייל כבר קיים במערכת.";
-      if (error.code === 'auth/weak-password') msg = "סיסמה חלשה מדי (לפחות 6 תווים).";
-      if (error.code === 'auth/invalid-email') msg = "כתובת אימייל לא תקינה.";
-      if (error.code === 'auth/invalid-api-key' || error.message.includes('API key')) msg = "חסרה הגדרת Firebase (firebase.ts).";
-      if (error.code === 'auth/network-request-failed') msg = "שגיאת תקשורת. בדוק את החיבור לאינטרנט.";
+      if (error.code === 'auth/email-already-in-use') msg = "האימייל כבר קיים.";
       setAuthError(msg);
     } finally {
       setAuthLoading(false);
@@ -184,13 +165,12 @@ const App: React.FC = () => {
 
   const handleGenerateSuggestion = async (field: keyof ITCData) => {
     setAiStatus(AnalysisStatus.LOADING);
-    setActiveSuggestion("טוען הצעות...");
+    setActiveSuggestion("המאמן הדיגיטלי חושב על רעיונות עבורך...");
     try {
       const suggestion = await generateSuggestions(field, data);
       setActiveSuggestion(suggestion);
       setAiStatus(AnalysisStatus.IDLE);
     } catch (e: any) {
-      // Use clean message from error
       setActiveSuggestion(`שגיאה בקבלת הצעות:\n${e.message}`);
       setAiStatus(AnalysisStatus.ERROR);
     }
@@ -204,172 +184,308 @@ const App: React.FC = () => {
     }
   };
 
-  const closeSuggestion = () => setActiveSuggestion(null);
-
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header */}
-      <header className="bg-gradient-to-l from-brand-900 via-brand-800 to-brand-900 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center">
-          <div className="flex items-center gap-3 mb-4 sm:mb-0">
-             <div className="bg-white/10 p-2 rounded-lg backdrop-blur-md border border-white/20">
-               <BrainCircuit size={28} className="text-brand-100" />
+    <div className="min-h-screen bg-slate-50 font-sans pb-20">
+      
+      {/* --- HEADER --- */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-[1920px] mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+             <div className="bg-brand-600 p-2.5 rounded-xl shadow-lg shadow-brand-500/20 text-white">
+               <BrainCircuit size={26} strokeWidth={2.5} />
              </div>
              <div>
-               <h1 className="text-2xl font-black tracking-tight">OBT</h1>
+               <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">OBT</h1>
                <div className="flex items-center gap-2">
-                 <p className="text-brand-100 text-sm font-light tracking-wider">כלי לניהול התהליך האישי</p>
-                 {user && isSaving && <span className="text-xs text-brand-200 animate-pulse flex items-center gap-1"><Cloud size={10} /> שומר...</span>}
-                 {user && !isSaving && <span className="text-xs text-brand-200 flex items-center gap-1"><Cloud size={10} /> שמור בענן</span>}
+                 <p className="text-slate-500 text-sm font-medium tracking-wide">כלי לניהול התהליך האישי</p>
+                 {user && (
+                   <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 transition-all ${isSaving ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                     <Cloud size={10} /> {isSaving ? 'שומר...' : 'שמור'}
+                   </span>
+                 )}
                </div>
              </div>
           </div>
           
-          <div className="flex gap-2 items-center">
-            {/* Login/Logout Section */}
+          <div className="flex gap-3 items-center">
+            {/* Auth Buttons */}
             {!user ? (
-              <button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 bg-white text-brand-900 px-4 py-2 rounded-full transition-all shadow-md font-bold text-sm hover:bg-brand-50">
+              <button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg hover:bg-slate-800 transition-all font-bold text-sm shadow-md">
                 <LogIn size={16} />
-                <span>התחבר לשמירה</span>
+                <span>התחברות</span>
               </button>
             ) : (
-              <div className="flex items-center gap-2 mr-2">
-                 <div className="hidden md:flex flex-col items-end text-xs text-brand-100">
-                    <span className="font-bold">{user.email?.split('@')[0]}</span>
+              <div className="flex items-center gap-3">
+                 <div className="hidden md:block text-right">
+                    <p className="text-xs text-slate-400 font-medium">מחובר כ-</p>
+                    <p className="text-sm font-bold text-slate-700">{user.email?.split('@')[0]}</p>
                  </div>
-                 <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center font-bold text-white border-2 border-brand-200 uppercase overflow-hidden">
-                     {user.photoURL ? (
-                       <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-                     ) : (
-                       user.email?.[0] || 'U'
-                     )}
-                 </div>
-                 <button onClick={handleLogout} className="bg-white/10 hover:bg-red-500/80 p-2 rounded-full transition-colors text-white" title="התנתק">
-                   <LogOut size={16} />
+                 <button onClick={handleLogout} className="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 p-2.5 rounded-lg transition-colors border border-slate-200" title="התנתק">
+                   <LogOut size={18} />
                  </button>
               </div>
             )}
 
-            <div className="h-6 w-px bg-white/20 mx-2 hidden sm:block"></div>
+            <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
 
-            <button onClick={handleAnalysis} className="flex items-center gap-2 bg-brand-500 hover:bg-brand-400 text-white px-4 py-2 rounded-md transition-all shadow-md font-medium text-sm">
-              <BrainCircuit size={16} />
-              <span className="hidden sm:inline">ניתוח כללי</span>
+            <button 
+              onClick={handleAnalysis} 
+              disabled={aiStatus === AnalysisStatus.LOADING}
+              className="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white px-5 py-2.5 rounded-lg transition-all shadow-md shadow-brand-500/30 font-bold text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {aiStatus === AnalysisStatus.LOADING ? <RefreshCw className="animate-spin" size={18} /> : <Sparkles size={18} />}
+              <span className="hidden sm:inline">ניתוח מפה מלא</span>
             </button>
-             <button onClick={() => window.print()} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-md transition-all font-medium text-sm backdrop-blur-sm">
-              <FileDown size={16} />
+            
+             <button onClick={() => window.print()} className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 px-3 py-2.5 rounded-lg transition-all shadow-sm">
+              <FileDown size={20} />
             </button>
-            <button onClick={clearData} className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-100 px-3 py-2 rounded-md transition-all">
-              <RefreshCw size={16} />
+            <button onClick={clearData} className="bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 border border-slate-200 px-3 py-2.5 rounded-lg transition-all shadow-sm">
+              <RefreshCw size={20} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-[1600px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <main className="max-w-[1920px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
         
+        {/* Guest Warning */}
         {!user && (
-          <div className="bg-yellow-50 border-r-4 border-yellow-400 p-4 mb-6 rounded-lg shadow-sm">
-             <div className="flex justify-between items-center">
-               <div className="flex">
-                 <div className="flex-shrink-0">
-                   <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                 </div>
-                 <div className="mr-3">
-                   <p className="text-sm text-yellow-700 font-medium">
-                     אתה עובד במצב אורח. הנתונים נשמרים בדפדפן זה בלבד. <button onClick={() => setShowLoginModal(true)} className="underline font-bold hover:text-yellow-800">התחבר עכשיו</button> כדי לשמור ולגשת למפה מכל מכשיר.
-                   </p>
-                 </div>
-               </div>
+          <div className="max-w-4xl mx-auto bg-amber-50 border border-amber-200 p-4 mb-8 rounded-xl flex items-start gap-3 shadow-sm">
+             <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+             <div className="flex-1">
+               <p className="text-sm text-amber-800 font-medium">
+                 מצב אורח: הנתונים נשמרים בדפדפן זה בלבד. <button onClick={() => setShowLoginModal(true)} className="underline font-bold hover:text-amber-900">התחבר עכשיו</button> כדי לגבות את המפה שלך ולגשת אליה מכל מכשיר.
+               </p>
              </div>
            </div>
         )}
         
-        {/* AI Analysis/Coaching Box */}
+        {/* AI Feedback Area */}
         {(aiMessage || aiStatus === AnalysisStatus.LOADING) && (
-           <div className={`mb-8 bg-white border ${aiStatus === AnalysisStatus.ERROR ? 'border-red-300 bg-red-50' : 'border-brand-100'} rounded-xl shadow-lg p-6 relative overflow-hidden animate-fade-in`}>
-              <div className={`absolute top-0 right-0 w-2 h-full ${aiStatus === AnalysisStatus.ERROR ? 'bg-red-500' : 'bg-brand-500'}`}></div>
-              <h2 className={`text-xl font-bold mb-2 flex items-center gap-2 ${aiStatus === AnalysisStatus.ERROR ? 'text-red-800' : 'text-brand-800'}`}>
-                {aiStatus === AnalysisStatus.LOADING ? (
-                  <>
-                    <RefreshCw className="animate-spin" size={20} />
-                    <span>המאמן הדיגיטלי חושב...</span>
-                  </>
-                ) : aiStatus === AnalysisStatus.ERROR ? (
-                   <>
-                    <AlertCircle className="text-red-500" size={20} />
-                    <span>שגיאה</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="text-yellow-500" size={20} />
-                    <span>תובנות המאמן הדיגיטלי</span>
-                  </>
-                )}
-              </h2>
-              <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap">
-                {aiMessage || "מנתח את המפה שלך..."}
-              </div>
+           <div className="max-w-5xl mx-auto mb-10 animate-fade-in">
+             <div className={`bg-white rounded-2xl shadow-xl overflow-hidden border ${aiStatus === AnalysisStatus.ERROR ? 'border-red-200' : 'border-brand-100'}`}>
+                <div className={`h-1.5 w-full ${aiStatus === AnalysisStatus.ERROR ? 'bg-red-500' : 'bg-gradient-to-r from-brand-500 via-purple-500 to-brand-500 animate-gradient'}`}></div>
+                <div className="p-6 md:p-8">
+                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800">
+                    {aiStatus === AnalysisStatus.LOADING ? (
+                      <><RefreshCw className="animate-spin text-brand-500" size={20} /> מעבד נתונים...</>
+                    ) : aiStatus === AnalysisStatus.ERROR ? (
+                      <><AlertCircle className="text-red-500" size={20} /> שגיאה</>
+                    ) : (
+                      <><Sparkles className="text-brand-500" size={20} /> תובנות המאמן הדיגיטלי</>
+                    )}
+                  </h2>
+                  <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
+                    {aiMessage || "אנא המתן..."}
+                  </div>
+                </div>
+             </div>
            </div>
         )}
 
-        {/* Suggestion Modal/Overlay */}
-        {activeSuggestion && (
-          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative border-t-4 border-brand-500">
-              <button onClick={closeSuggestion} className="absolute top-4 left-4 text-slate-400 hover:text-slate-600">
-                <AlertCircle size={24} className="rotate-45" /> {/* Using as close icon */}
-              </button>
-              <h3 className="text-xl font-bold mb-4 text-brand-900">הצעות השראה</h3>
-              <div className="whitespace-pre-wrap text-slate-700 bg-slate-50 p-4 rounded-lg border border-slate-100 max-h-[60vh] overflow-y-auto">
-                {activeSuggestion}
-              </div>
-              <div className="mt-6 text-center">
-                <button onClick={closeSuggestion} className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-full font-medium transition-colors">
-                  הבנתי, תודה
-                </button>
-              </div>
+        {/* --- MAIN GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 min-h-[700px]">
+          
+          {/* COLUMN 1 */}
+          <div className="flex flex-col bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200 overflow-hidden hover:border-brand-300 transition-colors group">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+               <span className="font-black text-slate-300 text-4xl leading-none select-none">1</span>
+               <div className="text-right">
+                 <h2 className="font-bold text-slate-800 text-lg">מטרת השיפור</h2>
+                 <p className="text-xs text-slate-500 font-medium">המחויבות הגלויה</p>
+               </div>
+            </div>
+            <div className="flex-1 p-5">
+              <TextAreaField 
+                label="" 
+                subLabel="למה אני מחויב? מה הדבר שאני הכי רוצה לשנות בהתנהלות שלי?"
+                value={data.column1}
+                onChange={(val) => updateField('column1', val)}
+                placeholder="לדוגמה: אני מחויב להיות יותר אסרטיבי מול המנהל שלי..."
+                onAutoGenerate={() => handleGenerateSuggestion('column1')}
+                aiButtonText="הצע מטרות"
+                heightClass="h-full min-h-[400px]"
+                colorClass="border-slate-200 focus:border-brand-400 focus:ring-brand-100"
+              />
             </div>
           </div>
-        )}
 
-        {/* Login Modal */}
-        {showLoginModal && (
-          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          {/* COLUMN 2 */}
+          <div className="flex flex-col bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200 overflow-hidden hover:border-brand-300 transition-colors group">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+               <span className="font-black text-slate-300 text-4xl leading-none select-none">2</span>
+               <div className="text-right">
+                 <h2 className="font-bold text-slate-800 text-lg">מה אני עושה?</h2>
+                 <p className="text-xs text-slate-500 font-medium">התנהגויות מעכבות</p>
+               </div>
+            </div>
+            <div className="flex-1 p-5">
+              <TextAreaField 
+                label="" 
+                subLabel="מה אני עושה (או לא עושה) שמונע את השגת המטרה מטור 1?"
+                value={data.column2}
+                onChange={(val) => updateField('column2', val)}
+                placeholder="לדוגמה: אני שותק בישיבות, אני נמנע מעימותים..."
+                onAutoGenerate={() => handleGenerateSuggestion('column2')}
+                aiButtonText="זהה התנהגויות"
+                heightClass="h-full min-h-[400px]"
+                colorClass="border-slate-200 focus:border-brand-400 focus:ring-brand-100"
+              />
+            </div>
+          </div>
+
+          {/* COLUMN 3 (SPLIT) */}
+          <div className="flex flex-col rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-brand-200 overflow-hidden ring-1 ring-brand-100 bg-white">
+            
+            {/* WORRIES (Top Half) */}
+            <div className="flex-1 p-5 border-b-2 border-dashed border-slate-200 bg-gradient-to-b from-rose-50/50 to-transparent">
+              <div className="flex justify-between items-center mb-4">
+                 <div className="flex items-center gap-2">
+                   <div className="bg-rose-100 p-1.5 rounded-md text-rose-600"><ShieldAlert size={18} /></div>
+                   <div>
+                     <h2 className="font-bold text-slate-800 text-lg leading-tight">תיבת הדאגות</h2>
+                     <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded tracking-wide uppercase">המערכת החיסונית א'</span>
+                   </div>
+                 </div>
+                 <span className="font-black text-slate-200 text-4xl leading-none select-none">3</span>
+              </div>
+              
+              <TextAreaField 
+                label="" 
+                subLabel="דמיין שאתה עושה את ההפך מטור 2. מה הדבר המפחיד ביותר שעלול לקרות?"
+                value={data.column3_worries}
+                onChange={(val) => updateField('column3_worries', val)}
+                placeholder="אני דואג ש..."
+                onAutoGenerate={() => handleGenerateSuggestion('column3_worries')}
+                aiButtonText="חשוף את הדאגה"
+                heightClass="h-48"
+                colorClass="border-rose-100 focus:border-rose-400 focus:ring-rose-100 bg-white"
+              />
+            </div>
+
+            {/* HIDDEN COMMITMENTS (Bottom Half) */}
+            <div className="flex-1 p-5 bg-gradient-to-b from-amber-50/50 to-transparent">
+               <div className="flex items-center gap-2 mb-4">
+                   <div className="bg-amber-100 p-1.5 rounded-md text-amber-600"><ShieldCheck size={18} /></div>
+                   <div>
+                     <h2 className="font-bold text-slate-800 text-lg leading-tight">מחויבות נסתרת</h2>
+                     <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded tracking-wide uppercase">המערכת החיסונית ב'</span>
+                   </div>
+               </div>
+               
+              <TextAreaField 
+                label="" 
+                subLabel="כדי לא להרגיש את הדאגה הזו, למה אני מחויב באמת?"
+                value={data.column3_commitments}
+                onChange={(val) => updateField('column3_commitments', val)}
+                placeholder="אני מחויב ל..."
+                onAutoGenerate={() => handleGenerateSuggestion('column3_commitments')}
+                aiButtonText="נסח מחויבות"
+                heightClass="h-48"
+                colorClass="border-amber-100 focus:border-amber-400 focus:ring-amber-100 bg-white"
+              />
+            </div>
+          </div>
+
+          {/* COLUMN 4 */}
+          <div className="flex flex-col bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200 overflow-hidden hover:border-brand-300 transition-colors group">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+               <span className="font-black text-slate-300 text-4xl leading-none select-none">4</span>
+               <div className="text-right">
+                 <h2 className="font-bold text-slate-800 text-lg">הנחות יסוד</h2>
+                 <p className="text-xs text-slate-500 font-medium">התפיסה המקבעת</p>
+               </div>
+            </div>
+            <div className="flex-1 p-5">
+              <TextAreaField 
+                label="" 
+                subLabel="מה אני מניח על העולם שגורם למחויבות הנסתרת להרגיש כמו אמת מוחלטת?"
+                value={data.column4}
+                onChange={(val) => updateField('column4', val)}
+                placeholder="אני מניח שאם..."
+                onAutoGenerate={() => handleGenerateSuggestion('column4')}
+                aiButtonText="חשוף הנחות"
+                heightClass="h-full min-h-[400px]"
+                colorClass="border-slate-200 focus:border-brand-400 focus:ring-brand-100"
+              />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="mt-16 border-t border-slate-200 pt-8 text-center">
+          <p className="text-slate-400 text-sm font-medium">© OBT | מבוסס על מודל Immunity to Change של רוברט קגן וליסה לייהי</p>
+        </div>
+      </main>
+
+      {/* --- MODALS --- */}
+
+      {/* Suggestions Modal */}
+      {activeSuggestion && (
+        <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-0 relative overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-brand-600 p-4 flex justify-between items-center">
+               <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                 <Sparkles size={18} /> הצעות השראה
+               </h3>
+               <button onClick={() => setActiveSuggestion(null)} className="text-brand-200 hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="prose prose-slate max-w-none text-slate-700 whitespace-pre-wrap">
+                {activeSuggestion}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-slate-100 bg-slate-50 text-center">
+              <button onClick={() => setActiveSuggestion(null)} className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-brand-500/20">
+                תודה, הבנתי
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+          <div className="fixed inset-0 bg-slate-900/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
               <button onClick={() => setShowLoginModal(false)} className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 transition-colors">
                 <X size={24} />
               </button>
               
-              <div className="text-center mb-6">
-                <div className="bg-brand-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <LogIn className="text-brand-600" size={24} />
+              <div className="text-center mb-8">
+                <div className="bg-brand-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand-100 rotate-3">
+                  <LogIn className="text-brand-600" size={32} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900">
-                  {authMode === 'login' ? 'התחברות לחשבון' : 'יצירת חשבון חדש'}
+                <h3 className="text-2xl font-black text-slate-800">
+                  {authMode === 'login' ? 'ברוכים הבאים' : 'יצירת חשבון'}
                 </h3>
-                <p className="text-slate-500 text-sm mt-1">
-                  שמור את המפה שלך וגש אליה מכל מקום
+                <p className="text-slate-500 mt-2">
+                  {authMode === 'login' ? 'התחבר כדי לגשת למפה שלך' : 'הצטרף אלינו כדי לשמור את ההתקדמות שלך'}
                 </p>
               </div>
 
               {authError && (
-                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
-                  <AlertCircle size={16} />
-                  {authError}
+                <div className="bg-red-50 text-red-600 text-sm p-4 rounded-xl mb-6 flex items-start gap-3">
+                  <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                  <span>{authError}</span>
                 </div>
               )}
 
               <form onSubmit={handleEmailAuth} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">כתובת אימייל</label>
-                  <div className="relative">
-                    <Mail className="absolute right-3 top-3 text-slate-400" size={18} />
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5">כתובת אימייל</label>
+                  <div className="relative group">
+                    <Mail className="absolute right-3 top-3 text-slate-400 group-focus-within:text-brand-500 transition-colors" size={20} />
                     <input 
                       type="email" 
                       required
-                      className="w-full pr-10 pl-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
+                      className="w-full pr-10 pl-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all bg-slate-50 focus:bg-white"
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -377,13 +493,13 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">סיסמה</label>
-                  <div className="relative">
-                    <Lock className="absolute right-3 top-3 text-slate-400" size={18} />
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5">סיסמה</label>
+                  <div className="relative group">
+                    <Lock className="absolute right-3 top-3 text-slate-400 group-focus-within:text-brand-500 transition-colors" size={20} />
                     <input 
                       type="password" 
                       required
-                      className="w-full pr-10 pl-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all"
+                      className="w-full pr-10 pl-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all bg-slate-50 focus:bg-white"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -394,53 +510,36 @@ const App: React.FC = () => {
                 <button 
                   type="submit" 
                   disabled={authLoading}
-                  className="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-bold shadow-lg shadow-brand-500/30 transition-all flex justify-center items-center gap-2"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold shadow-lg shadow-slate-900/20 transition-all flex justify-center items-center gap-2 mt-2"
                 >
-                  {authLoading ? <RefreshCw className="animate-spin" size={18} /> : (authMode === 'login' ? 'התחבר' : 'הירשם')}
+                  {authLoading ? <RefreshCw className="animate-spin" size={20} /> : (authMode === 'login' ? 'התחבר' : 'הירשם')}
                 </button>
               </form>
 
-              <div className="relative my-6">
+              <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-slate-500">או המשך עם</span>
+                  <span className="px-4 bg-white text-slate-400 font-medium">או המשך באמצעות</span>
                 </div>
               </div>
 
               <button 
                 onClick={handleGoogleLogin}
                 type="button"
-                className="w-full bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2"
+                className="w-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-3"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
                 Google
               </button>
 
-              <div className="mt-6 text-center text-sm text-slate-600">
+              <div className="mt-8 text-center text-sm text-slate-600">
                 {authMode === 'login' ? (
                   <>
                     אין לך עדיין חשבון?{' '}
                     <button onClick={() => { setAuthMode('register'); setAuthError(''); }} className="text-brand-600 font-bold hover:underline">
-                      הירשם עכשיו
+                      הירשם עכשיו בחינם
                     </button>
                   </>
                 ) : (
@@ -456,109 +555,30 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* The Grid / Table */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 min-h-[600px]">
-          
-          {/* Column 1: Goal */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4 hover:shadow-md transition-shadow">
-            <div className="bg-brand-50 text-brand-800 px-4 py-2 rounded-full w-fit text-sm font-black tracking-wide border border-brand-100">טור 1</div>
-            <TextAreaField 
-              label="מטרת השיפור" 
-              subLabel="למה אני מחויב? מה הדבר שאני רוצה לשנות בעצמי?"
-              value={data.column1}
-              onChange={(val) => updateField('column1', val)}
-              placeholder="אני מחויב ל..."
-              onAutoGenerate={() => handleGenerateSuggestion('column1')}
-              aiButtonText="צריך רעיונות למטרות?"
-              heightClass="flex-1 min-h-[300px]"
-              colorClass="border-blue-100 focus:border-blue-400"
-            />
-          </div>
-
-          {/* Column 2: Doing/Not Doing */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4 hover:shadow-md transition-shadow">
-            <div className="bg-brand-50 text-brand-800 px-4 py-2 rounded-full w-fit text-sm font-black tracking-wide border border-brand-100">טור 2</div>
-            <TextAreaField 
-              label="מה אני עושה/לא עושה?" 
-              subLabel="מהם ההתנהגויות שלי שמונעות את מימוש מטרת השיפור?"
-              value={data.column2}
-              onChange={(val) => updateField('column2', val)}
-              placeholder="במקום זאת, אני..."
-              onAutoGenerate={() => handleGenerateSuggestion('column2')}
-              aiButtonText="צריך עזרה בזיהוי ההתנהגויות?"
-              heightClass="flex-1 min-h-[300px]"
-              colorClass="border-blue-100 focus:border-blue-400"
-            />
-          </div>
-
-          {/* Column 3: Split Column */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col hover:shadow-md transition-shadow overflow-hidden">
-            {/* Top Half: Worries Box */}
-            <div className="flex-1 p-6 border-b-2 border-slate-100 bg-red-50/30">
-              <div className="bg-brand-50 text-brand-800 px-4 py-2 rounded-full w-fit text-sm font-black tracking-wide border border-brand-100 mb-4">טור 3 - חלק א'</div>
-              <TextAreaField 
-                label="תיבת הדאגות" 
-                subLabel="כשאני מדמיין את עצמי עושה את ההפך מטור 2, מה הדבר המפחיד ביותר שעלול לקרות?"
-                value={data.column3_worries}
-                onChange={(val) => updateField('column3_worries', val)}
-                placeholder="אני דואג ש..."
-                onAutoGenerate={() => handleGenerateSuggestion('column3_worries')}
-                aiButtonText="צריך עזרה בחשיפת הדאגה?"
-                heightClass="h-48"
-                colorClass="border-red-100 focus:border-red-400 bg-red-50/50"
-              />
-            </div>
-
-            {/* Bottom Half: Hidden Commitment */}
-            <div className="flex-1 p-6 bg-amber-50/30">
-               <div className="bg-brand-50 text-brand-800 px-4 py-2 rounded-full w-fit text-sm font-black tracking-wide border border-brand-100 mb-4">טור 3 - חלק ב'</div>
-              <TextAreaField 
-                label="מחויבות נסתרת" 
-                subLabel="כדי לא להרגיש את הדאגה הזו, למה אני מחויב בעצם?"
-                value={data.column3_commitments}
-                onChange={(val) => updateField('column3_commitments', val)}
-                placeholder="אני מחויב ל..."
-                onAutoGenerate={() => handleGenerateSuggestion('column3_commitments')}
-                aiButtonText="מהי המחויבות הנסתרת?"
-                heightClass="h-48"
-                colorClass="border-amber-100 focus:border-amber-400 bg-amber-50/50"
-              />
-            </div>
-          </div>
-
-          {/* Column 4: Big Assumptions */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col gap-4 hover:shadow-md transition-shadow">
-            <div className="bg-brand-50 text-brand-800 px-4 py-2 rounded-full w-fit text-sm font-black tracking-wide border border-brand-100">טור 4</div>
-            <TextAreaField 
-              label="הנחות יסוד גדולות" 
-              subLabel="מה אני מניח על העולם או על עצמי שגורם למחויבות הנסתרת להיראות הכרחית?"
-              value={data.column4}
-              onChange={(val) => updateField('column4', val)}
-              placeholder="אני מניח ש..."
-              onAutoGenerate={() => handleGenerateSuggestion('column4')}
-              aiButtonText="צריך עזרה בניסוח ההנחה?"
-              heightClass="flex-1 min-h-[300px]"
-              colorClass="border-purple-100 focus:border-purple-400"
-            />
-          </div>
-
-        </div>
-
-        {/* Footer info */}
-        <div className="mt-12 text-center text-slate-400 text-sm">
-          <p>© כל הזכויות שמורות ל-OBT | מבוסס על מודל Immunity to Change של רוברט קגן וליסה לייהי</p>
-        </div>
-      </main>
-      
-      {/* Print styles override */}
       <style>{`
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         @media print {
-          header button { display: none; }
-          .animate-fade-in { display: none; }
-          body { background: white; }
-          .grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 10px; }
-          textarea { border: 1px solid #ccc; resize: none; overflow: hidden; font-size: 12px; }
-          .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; }
+          header, button, .animate-fade-in, .sticky { display: none !important; }
+          body { background: white; padding: 0; }
+          .grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 10px; page-break-inside: avoid; }
+          textarea { border: 1px solid #ccc; resize: none; overflow: hidden; font-size: 11px; font-family: sans-serif; }
+          .shadow-xl, .shadow-lg, .shadow-md, .shadow-sm { box-shadow: none !important; }
+          h1, h2, h3 { color: black !important; }
         }
       `}</style>
     </div>

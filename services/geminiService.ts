@@ -1,33 +1,17 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
-import { GOOGLE_GENAI_API_KEY } from '../config';
 
 // ============================================================================
 // 🔑 Gemini API Setup
 // ============================================================================
 
 const getAiClient = () => {
-  let apiKey = GOOGLE_GENAI_API_KEY;
-
-  // בדיקה אם המפתח הוא עדיין ברירת המחדל
-  const isDefaultKey = !apiKey || apiKey === "YOUR_API_KEY_HERE";
-
-  // נסיון חלופי: משתני סביבה (אם קיימים בסביבת הפיתוח)
-  if (isDefaultKey) {
-    try {
-      // @ts-ignore
-      if (typeof process !== 'undefined' && process.env?.API_KEY) {
-        // @ts-ignore
-        apiKey = process.env.API_KEY;
-      }
-    } catch (e) {
-      // process is not defined
-    }
-  }
-
-  // אם עדיין אין מפתח תקין, החזר null (מצב הדגמה)
-  if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
-    return null; 
+  // Access the API key strictly from the environment variable
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    console.error("Gemini API Key is missing in process.env.API_KEY");
+    return null;
   }
   
   return new GoogleGenAI({ apiKey });
@@ -38,18 +22,9 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
   try {
     const ai = getAiClient();
     
-    // DEMO MODE: If no API key, return a simulation
     if (!ai) {
-      return `[מצב הדגמה - חסר מפתח API]
-      
-לא הוגדר מפתח Gemini API בקובץ config.ts.
-כדי לקבל ניתוח אמיתי:
-1. פתח את הקובץ config.ts
-2. הדבק שם את המפתח שלך.
-
-הנה ניתוח לדוגמה:
-המפה שלך מראה התחלה טובה. הפער הלוגי המרכזי נמצא בין טור 2 (התנהגויות) לטור 3 (דאגות).
-שאלת מפתח: האם הדאגה שציינת בטור 3 היא באמת הדבר הכי גרוע שיקרה אם תפסיק את ההתנהגות בטור 2?`;
+      return `שגיאת מערכת: מפתח API לא נמצא. 
+נא לוודא שהוגדר משתנה סביבה בשם API_KEY בפרויקט.`;
     }
     
     const systemInstruction = `
@@ -85,7 +60,7 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
     return response.text || "לא התקבלה תשובה מהמודל.";
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    return `שגיאה: ${error.message || "תקלה בתקשורת עם ה-AI"}`;
+    return `שגיאה בתקשורת עם ה-AI: ${error.message}`;
   }
 };
 
@@ -94,10 +69,8 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
   try {
     const ai = getAiClient();
     
-    // DEMO MODE
     if (!ai) {
-      return `[מצב הדגמה] חסר מפתח API.
-נא לעדכן את הקובץ config.ts עם המפתח שלך כדי לקבל הצעות אמיתיות.`;
+      throw new Error("מפתח API חסר");
     }
 
     let context = "";
@@ -108,7 +81,7 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
         task = `
           The user is starting the process.
           Suggest 3 examples of powerful, adaptive "Improvement Goals" (מטרת השיפור) formatted as: "אני מחויב ל..." (I am committed to...).
-          Examples should cover: Delegation, Work-Life Balance, or Assertiveness.
+          Examples should cover common leadership or personal challenges.
         `;
         break;
 
@@ -118,7 +91,6 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
           The user wants to achieve the goal above but isn't succeeding yet.
           Suggest 3 specific behaviors (what they are doing or NOT doing) that effectively work AGAINST this goal.
           Format: "במקום זאת, אני..." (Instead, I...).
-          Example logic: If goal is delegation, behavior might be "I micromanage every email".
         `;
         break;
 
@@ -177,7 +149,6 @@ export const generateSuggestions = async (field: keyof ITCData, currentData: ITC
     return response.text || "לא התקבלה תשובה.";
   } catch (error: any) {
     console.error("Gemini Suggestion Error:", error);
-    // Throwing here so the UI catches it in the modal
     throw new Error(error.message || "שגיאה ביצירת הצעות");
   }
 };
