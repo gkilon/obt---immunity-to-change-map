@@ -176,6 +176,11 @@ const App: React.FC = () => {
     }
   };
 
+  const closeAiMessage = () => {
+    setAiMessage('');
+    setAiStatus(AnalysisStatus.IDLE);
+  };
+
   const clearData = () => {
     if (confirm('האם אתה בטוח שברצונך לנקות את הטופס?')) {
       setData(INITIAL_DATA);
@@ -263,8 +268,18 @@ const App: React.FC = () => {
         
         {/* AI Feedback Area */}
         {(aiMessage || aiStatus === AnalysisStatus.LOADING) && (
-           <div className="max-w-5xl mx-auto mb-10 animate-fade-in">
-             <div className={`bg-white rounded-2xl shadow-xl overflow-hidden border ${aiStatus === AnalysisStatus.ERROR ? 'border-red-200' : 'border-brand-100'}`}>
+           <div className="max-w-5xl mx-auto mb-10 animate-fade-in relative z-10">
+             <div className={`bg-white rounded-2xl shadow-xl overflow-hidden border relative ${aiStatus === AnalysisStatus.ERROR ? 'border-red-200' : 'border-brand-100'}`}>
+                
+                {/* Close Button */}
+                <button 
+                  onClick={closeAiMessage} 
+                  className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all z-20"
+                  title="סגור הודעה"
+                >
+                  <X size={20} />
+                </button>
+
                 <div className={`h-1.5 w-full ${aiStatus === AnalysisStatus.ERROR ? 'bg-red-500' : 'bg-gradient-to-r from-brand-500 via-purple-500 to-brand-500 animate-gradient'}`}></div>
                 <div className="p-6 md:p-8">
                   <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800">
