@@ -7,4 +7,5 @@
 // 2. העתק את המפתח שקיבלת.
 // 3. הדבק את המפתח בתוך המרכאות בשורה למטה (במקום YOUR_API_KEY_HERE).
 
-export const GOOGLE_GENAI_API_KEY = "YOUR_API_KEY_HERE";
+export const GOOGLE_GENAI_API_KEY = "AIzaSyC88w5qArQkie1ySYjLNogYOlAysKIopHo";
+ 
