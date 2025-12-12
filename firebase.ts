@@ -3,17 +3,25 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// קבלת ההגדרות שהוזרקו דרך vite.config.ts
-// זה מבטיח שהמשתנה קיים ולא יהיה undefined
-// @ts-ignore
-// Fix: Cast to any because Vite replaces this with an object literal, but TS sees it as a string
-const firebaseConfig = process.env.FIREBASE_CONFIG as any;
+// --- הוראות הגדרה ---
+// 1. לך אל https://console.firebase.google.com
+// 2. צור פרויקט חדש
+// 3. הוסף אפליקציית Web
+// 4. העתק את ה-Config והדבק במקום הערכים למטה
 
-if (!firebaseConfig || !firebaseConfig.apiKey) {
-  console.error("Critical Error: Firebase config failed to load.");
-}
+const firebaseConfig = {
+  // החלף את הערכים הללו בערכים האמיתיים שלך מ-Firebase
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Initialize Services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
