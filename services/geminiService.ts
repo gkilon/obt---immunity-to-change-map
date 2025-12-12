@@ -1,23 +1,33 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
+import { GOOGLE_GENAI_API_KEY } from '../config';
+
+// ============================================================================
+// 🔑 Gemini API Setup
+// ============================================================================
 
 const getAiClient = () => {
-  let apiKey: string | undefined = undefined;
-  
-  try {
-    // Safely attempt to access process.env
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env) {
+  let apiKey = GOOGLE_GENAI_API_KEY;
+
+  // בדיקה אם המפתח הוא עדיין ברירת המחדל
+  const isDefaultKey = !apiKey || apiKey === "YOUR_API_KEY_HERE";
+
+  // נסיון חלופי: משתני סביבה (אם קיימים בסביבת הפיתוח)
+  if (isDefaultKey) {
+    try {
       // @ts-ignore
-      apiKey = process.env.API_KEY;
+      if (typeof process !== 'undefined' && process.env?.API_KEY) {
+        // @ts-ignore
+        apiKey = process.env.API_KEY;
+      }
+    } catch (e) {
+      // process is not defined
     }
-  } catch (e) {
-    console.warn("Failed to access process.env", e);
   }
 
-  if (!apiKey) {
-    // Throw a specific error that the UI can catch and display in Hebrew
-    throw new Error("חסר מפתח API. לא ניתן לבצע את הפעולה ללא הגדרת process.env.API_KEY בסביבת העבודה.");
+  // אם עדיין אין מפתח תקין, החזר null (מצב הדגמה)
+  if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
+    return null; 
   }
   
   return new GoogleGenAI({ apiKey });
@@ -27,6 +37,20 @@ const getAiClient = () => {
 export const analyzeITCMap = async (data: ITCData): Promise<string> => {
   try {
     const ai = getAiClient();
+    
+    // DEMO MODE: If no API key, return a simulation
+    if (!ai) {
+      return `[מצב הדגמה - חסר מפתח API]
+      
+לא הוגדר מפתח Gemini API בקובץ config.ts.
+כדי לקבל ניתוח אמיתי:
+1. פתח את הקובץ config.ts
+2. הדבק שם את המפתח שלך.
+
+הנה ניתוח לדוגמה:
+המפה שלך מראה התחלה טובה. הפער הלוגי המרכזי נמצא בין טור 2 (התנהגויות) לטור 3 (דאגות).
+שאלת מפתח: האם הדאגה שציינת בטור 3 היא באמת הדבר הכי גרוע שיקרה אם תפסיק את ההתנהגות בטור 2?`;
+    }
     
     const systemInstruction = `
       You are an expert organizational psychologist specializing in Robert Kegan and Lisa Lahey's "Immunity to Change" model.
@@ -61,7 +85,6 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
     return response.text || "לא התקבלה תשובה מהמודל.";
   } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    // Return the clean error message to the UI
     return `שגיאה: ${error.message || "תקלה בתקשורת עם ה-AI"}`;
   }
 };
@@ -70,6 +93,13 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
 export const generateSuggestions = async (field: keyof ITCData, currentData: ITCData): Promise<string> => {
   try {
     const ai = getAiClient();
+    
+    // DEMO MODE
+    if (!ai) {
+      return `[מצב הדגמה] חסר מפתח API.
+נא לעדכן את הקובץ config.ts עם המפתח שלך כדי לקבל הצעות אמיתיות.`;
+    }
+
     let context = "";
     let task = "";
 
