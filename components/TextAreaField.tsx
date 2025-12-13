@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ArrowLeft } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface TextAreaFieldProps {
   label: string;
@@ -22,32 +22,42 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   onAutoGenerate,
   aiButtonText,
   heightClass = "h-40",
-  colorClass = "border-slate-200 focus:border-brand-500"
+  colorClass = "" 
 }) => {
   return (
     <div className="flex flex-col h-full relative group">
-      <div className="mb-2">
-        <h3 className="text-lg font-bold text-slate-800">{label}</h3>
-        {subLabel && <p className="text-xs text-slate-500 leading-snug">{subLabel}</p>}
-      </div>
+      {(label || subLabel) && (
+        <div className="mb-4 pl-1 border-r-2 border-bronze-700/50 pr-3">
+          {label && <h3 className="text-xl font-normal text-onyx-100 tracking-wide">{label}</h3>}
+          {subLabel && <p className="text-sm text-onyx-400 font-normal mt-1 leading-relaxed">{subLabel}</p>}
+        </div>
+      )}
       
       <div className="flex-1 flex flex-col relative">
         <textarea
-          className={`w-full ${heightClass} p-3 rounded-lg border-2 ${colorClass} focus:ring-2 focus:ring-brand-100 outline-none resize-none transition-all shadow-sm text-slate-700 bg-white/50 backdrop-blur-sm mb-2`}
+          // Added pb-14 to prevent text from going under the button
+          className={`w-full ${heightClass} p-5 pb-14 rounded-lg border border-onyx-700/50 bg-onyx-950/30 focus:bg-onyx-950/60 focus:border-bronze-500/50 focus:ring-1 focus:ring-bronze-500/20 outline-none resize-none transition-all duration-300 text-onyx-200 placeholder:text-onyx-600 text-lg font-light leading-loose shadow-inner`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          style={{ 
+             // Subtle dot grid
+             backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)', 
+             backgroundSize: '24px 24px' 
+          }} 
         />
         
         {onAutoGenerate && (
-          <button 
-            onClick={onAutoGenerate}
-            className="self-start text-xs font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3 py-1.5 rounded-full transition-all flex items-center gap-2 group/btn"
-          >
-            <Sparkles size={14} className="text-brand-500 group-hover/btn:animate-pulse" />
-            <span>{aiButtonText || "צריך עזרה עם השלב הזה?"}</span>
-            <ArrowLeft size={12} className="opacity-0 group-hover/btn:opacity-100 transition-opacity -mr-1" />
-          </button>
+          // Positioned absolute bottom-left, always visible (no opacity transition), z-index ensures clickable
+          <div className="absolute bottom-3 left-3 z-20">
+            <button 
+              onClick={onAutoGenerate}
+              className="text-xs font-bold text-white bg-bronze-700 hover:bg-bronze-600 border border-bronze-600/50 px-3 py-1.5 rounded shadow-lg transition-all flex items-center gap-2 tracking-wide backdrop-blur-sm"
+            >
+              <Sparkles size={12} />
+              <span>{aiButtonText || "עזרה מהמאמן"}</span>
+            </button>
+          </div>
         )}
       </div>
     </div>
