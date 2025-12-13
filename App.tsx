@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ITCData, AnalysisStatus } from './types';
 import { analyzeITCMap, generateSuggestions, testApiConnection } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
@@ -21,6 +21,10 @@ const App: React.FC = () => {
   const [data, setData] = useState<ITCData>(INITIAL_DATA);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Ref to track if the current update came from Firestore (remote) or User (local)
+  // This prevents the app from re-saving data it just downloaded from the cloud.
+  const isRemoteUpdate = useRef(false);
   
   // Auth Modal State
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -55,6 +59,7 @@ const App: React.FC = () => {
   }, []);
 
   // 2. Firestore Real-time Listener (Read)
+  // This ensures that if you edit on Phone, the PC updates automatically.
   useEffect(() => {
     if (!user) return;
 
@@ -62,8 +67,11 @@ const App: React.FC = () => {
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const remoteData = docSnap.data() as ITCData;
+        
         setData(prev => {
+           // Compare data to avoid unnecessary re-renders
            if (JSON.stringify(prev) !== JSON.stringify(remoteData)) {
+             isRemoteUpdate.current = true; // Mark this as a remote update
              return remoteData;
            }
            return prev;
@@ -79,6 +87,12 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user || !isDataLoaded) return;
 
+    // CRITICAL: If this change came from the cloud, DO NOT save it back.
+    if (isRemoteUpdate.current) {
+      isRemoteUpdate.current = false;
+      return;
+    }
+
     const saveData = async () => {
       setIsSaving(true);
       try {
@@ -90,7 +104,8 @@ const App: React.FC = () => {
       }
     };
 
-    const timeoutId = setTimeout(saveData, 1000); // Debounce 1s
+    // Debounce: Wait 800ms after typing stops before saving
+    const timeoutId = setTimeout(saveData, 800); 
     return () => clearTimeout(timeoutId);
   }, [data, user, isDataLoaded]);
 
@@ -114,8 +129,6 @@ const App: React.FC = () => {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Google Login failed", error);
-      
-      // Check for specific configuration error
       if (error.code === 'auth/configuration-not-found' || error.code === 'auth/api-key-not-valid' || error.message.includes('API key')) {
         setAuthError("שגיאת הגדרות: יש לעדכן את קובץ firebase.ts עם נתונים אמיתיים מפרויקט ה-Firebase שלך.");
       } else if (error.code === 'auth/popup-closed-by-user') {
@@ -221,8 +234,8 @@ const App: React.FC = () => {
                <div className="flex items-center gap-2">
                  <p className="text-slate-500 text-sm font-medium tracking-wide">כלי לניהול התהליך האישי</p>
                  {user && (
-                   <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 transition-all ${isSaving ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                     <Cloud size={10} /> {isSaving ? 'שומר...' : 'שמור'}
+                   <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 transition-all ${isSaving ? 'bg-amber-100 text-amber-700 font-bold' : 'bg-emerald-100 text-emerald-700'}`}>
+                     <Cloud size={12} /> {isSaving ? 'שומר שינויים...' : 'הכל שמור בענן'}
                    </span>
                  )}
                </div>
