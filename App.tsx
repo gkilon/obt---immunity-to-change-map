@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ITCData, AnalysisStatus } from './types';
 import { analyzeITCMap, generateSuggestions, testApiConnection } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, X, Mail, Lock, ShieldAlert, ShieldCheck, Activity, Settings, Key, CheckCircle } from 'lucide-react';
+import { FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, X, Mail, Lock, ShieldAlert, ShieldCheck, Activity } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -30,63 +30,9 @@ const App: React.FC = () => {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Settings / API Key Modal
-  const [showSettings, setShowSettings] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [hasKey, setHasKey] = useState(false);
-  const [isEnvKey, setIsEnvKey] = useState(false);
-
   const [aiStatus, setAiStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [aiMessage, setAiMessage] = useState<string>('');
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
-
-  // Check for API Key on mount (Local Storage OR Environment Variable)
-  useEffect(() => {
-    // 1. Check Local Storage (Manual Override)
-    const storedKey = localStorage.getItem('gemini_api_key');
-    
-    // 2. Check Environment Variable (Netlify/Vite)
-    const envKey = process.env.API_KEY;
-
-    if (storedKey && storedKey.length > 10) {
-      setApiKeyInput(storedKey);
-      setHasKey(true);
-      setIsEnvKey(false);
-    } else if (envKey && envKey.length > 10 && envKey !== "undefined") {
-      setHasKey(true);
-      setIsEnvKey(true);
-    }
-  }, []);
-
-  // Save API Key
-  const handleSaveKey = () => {
-    if (apiKeyInput.trim().length < 10) {
-      alert("אנא הזן מפתח API תקין");
-      return;
-    }
-    localStorage.setItem('gemini_api_key', apiKeyInput.trim());
-    setHasKey(true);
-    setIsEnvKey(false);
-    setShowSettings(false);
-    handleTestConnection(); // Auto test after save
-  };
-
-  const handleClearKey = () => {
-    localStorage.removeItem('gemini_api_key');
-    setApiKeyInput('');
-    // Re-check env key
-    const envKey = process.env.API_KEY;
-    if (envKey && envKey.length > 10 && envKey !== "undefined") {
-       setHasKey(true);
-       setIsEnvKey(true);
-       setAiMessage('חזרנו להשתמש במפתח המערכת (Netlify).');
-    } else {
-       setHasKey(false);
-       setIsEnvKey(false);
-       setAiMessage('מפתח ה-API הוסר בהצלחה.');
-    }
-    setAiStatus(AnalysisStatus.IDLE);
-  };
 
   // 1. Auth Listener
   useEffect(() => {
@@ -168,7 +114,15 @@ const App: React.FC = () => {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Google Login failed", error);
-      setAuthError("התחברות נכשלה. אנא נסה שוב.");
+      
+      // Check for specific configuration error
+      if (error.code === 'auth/configuration-not-found' || error.code === 'auth/api-key-not-valid' || error.message.includes('API key')) {
+        setAuthError("שגיאת הגדרות: יש לעדכן את קובץ firebase.ts עם נתונים אמיתיים מפרויקט ה-Firebase שלך.");
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setAuthError("החלון נסגר על ידי המשתמש.");
+      } else {
+        setAuthError("התחברות נכשלה. אנא נסה שוב.");
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -191,6 +145,7 @@ const App: React.FC = () => {
       if (error.code === 'auth/wrong-password') msg = "סיסמה שגויה.";
       if (error.code === 'auth/user-not-found') msg = "משתמש לא נמצא.";
       if (error.code === 'auth/email-already-in-use') msg = "האימייל כבר קיים.";
+      if (error.code === 'auth/api-key-not-valid') msg = "שגיאת הגדרות: חסר מפתח Firebase תקין.";
       setAuthError(msg);
     } finally {
       setAuthLoading(false);
@@ -205,12 +160,6 @@ const App: React.FC = () => {
   };
 
   const handleAnalysis = async () => {
-    if (!hasKey) {
-      setShowSettings(true);
-      setAiMessage("אנא הזן מפתח API כדי להשתמש ביכולות ה-AI.");
-      setAiStatus(AnalysisStatus.ERROR);
-      return;
-    }
     setAiStatus(AnalysisStatus.LOADING);
     setAiMessage('');
     try {
@@ -224,11 +173,6 @@ const App: React.FC = () => {
   };
 
   const handleGenerateSuggestion = async (field: keyof ITCData) => {
-    if (!hasKey) {
-       setShowSettings(true);
-       alert("יש להגדיר מפתח API תחילה");
-       return;
-    }
     setAiStatus(AnalysisStatus.LOADING);
     setActiveSuggestion("המאמן הדיגיטלי חושב על רעיונות עבורך...");
     try {
@@ -242,10 +186,6 @@ const App: React.FC = () => {
   };
 
   const handleTestConnection = async () => {
-    if (!hasKey) {
-      setShowSettings(true);
-      return;
-    }
     setAiStatus(AnalysisStatus.LOADING);
     setAiMessage('בודק חיבור לשרתי גוגל...');
     const result = await testApiConnection();
@@ -290,16 +230,6 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex gap-3 items-center">
-            {/* API Settings Button */}
-            <button
-               onClick={() => setShowSettings(true)}
-               className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-all ${hasKey ? 'bg-white border-slate-200 text-slate-600 hover:text-brand-600' : 'bg-rose-50 border-rose-200 text-rose-600 animate-pulse'}`}
-               title="הגדרות API"
-            >
-               <Settings size={20} className={hasKey ? "" : "text-rose-600"} />
-               {!hasKey && <span className="text-xs font-bold hidden sm:inline">חסר מפתח</span>}
-            </button>
-
             {/* Auth Buttons */}
             {!user ? (
               <button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg hover:bg-slate-800 transition-all font-bold text-sm shadow-md">
@@ -326,7 +256,7 @@ const App: React.FC = () => {
                className="bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 px-3 py-2.5 rounded-lg transition-all shadow-sm group relative"
                title="בדיקת חיבור ל-AI"
             >
-               <Activity size={20} className={`group-hover:text-brand-500 ${hasKey ? 'text-slate-600' : 'text-slate-300'}`} />
+               <Activity size={20} className="group-hover:text-brand-500 text-slate-600" />
             </button>
 
             <button 
@@ -528,81 +458,6 @@ const App: React.FC = () => {
           <p className="text-slate-400 text-sm font-medium">© OBT | מבוסס על מודל Immunity to Change של רוברט קגן וליסה לייהי</p>
         </div>
       </main>
-
-      {/* --- MODALS --- */}
-      
-      {/* Settings / API Key Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-slate-900/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative overflow-hidden">
-             <button onClick={() => setShowSettings(false)} className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 transition-colors">
-                <X size={24} />
-             </button>
-             
-             <div className="text-center mb-6">
-                <div className="bg-slate-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-200">
-                  <Settings className="text-slate-600" size={32} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-800">הגדרות מערכת</h3>
-                <p className="text-slate-500 mt-2">הגדרת מפתח ה-AI שלך בצורה מאובטחת</p>
-             </div>
-
-             <div className="space-y-4">
-               
-               {isEnvKey ? (
-                 <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-start gap-3 text-emerald-800">
-                    <CheckCircle className="shrink-0 mt-0.5 text-emerald-600" size={20} />
-                    <div>
-                      <span className="font-bold block">מפתח מערכת מזוהה</span>
-                      <p className="text-sm">המערכת משתמשת במפתח API שמוגדר בשרת (Environment Variable). אין צורך להגדיר מפתח ידנית.</p>
-                    </div>
-                 </div>
-               ) : (
-                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-sm text-blue-800">
-                    <strong>למה צריך את זה?</strong> כדי שהמערכת תוכל לתת לך משוב חכם, עליה להשתמש במפתח פרטי. 
-                    המפתח נשמר <strong>רק בדפדפן שלך</strong> ולא עובר לאף שרת אחר.
-                 </div>
-               )}
-
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 mb-1.5">מפתח Gemini API {isEnvKey && '(אופציונלי - דריסה ידנית)'}</label>
-                 <div className="relative group">
-                    <Key className="absolute right-3 top-3 text-slate-400" size={20} />
-                    <input 
-                      type="password"
-                      className="w-full pr-10 pl-3 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all font-mono text-sm"
-                      placeholder={isEnvKey ? "המפתח מוגדר בשרת. הזן כאן רק כדי לשנות." : "הדבק כאן את המפתח החדש (מתחיל ב-AIza...)"}
-                      value={apiKeyInput}
-                      onChange={(e) => setApiKeyInput(e.target.value)}
-                    />
-                 </div>
-                 {!isEnvKey && (
-                   <p className="text-xs text-slate-400 mt-1">
-                     אין לך מפתח? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-brand-600 underline hover:text-brand-800">הוצא מפתח בחינם כאן</a>
-                   </p>
-                 )}
-               </div>
-
-               <div className="flex gap-3 mt-6">
-                 <button 
-                   onClick={handleSaveKey}
-                   className="flex-1 bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-bold shadow-lg shadow-brand-500/20 transition-all"
-                 >
-                   {isEnvKey && apiKeyInput.length === 0 ? "סגור" : "שמור מפתח והתחבר"}
-                 </button>
-                 {(!isEnvKey && hasKey) || (isEnvKey && apiKeyInput.length > 0) ? (
-                   <button 
-                     onClick={handleClearKey}
-                     className="px-4 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold transition-all border border-red-100"
-                   >
-                     נקה
-                   </button>
-                 ) : null}
-               </div>
-             </div>
-          </div>
-        </div>
-      )}
 
       {/* Suggestions Modal */}
       {activeSuggestion && (

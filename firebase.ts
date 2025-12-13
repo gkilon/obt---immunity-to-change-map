@@ -3,22 +3,27 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// --- הוראות הגדרה ---
-// 1. לך אל https://console.firebase.google.com
-// 2. צור פרויקט חדש
-// 3. הוסף אפליקציית Web
-// 4. העתק את ה-Config והדבק במקום הערכים למטה
+// ============================================================================
+// 🔥 הגדרות Firebase
+// ============================================================================
+// מומלץ: הגדר את המשתנים האלו ב-Netlify (Environment Variables) כדי לשמור על קוד נקי.
+// אם הם לא מוגדרים ב-Netlify, המערכת תנסה להשתמש בערכים המקודדים למטה.
 
 const firebaseConfig = {
-  // החלף את הערכים הללו בערכים האמיתיים שלך מ-Firebase
-  apiKey: "AAIzaSyDgjGk6q8BUieAGCybYdTOBpiUIxm8JXw0",
-  authDomain: "obt-tool-fc78d.firebaseapp.com",
-  projectId: "obt-tool-fc78d",
-  storageBucket: "obt-tool-fc78d.firebasestorage.app",
-  messagingSenderId: "57492839456",
-  appId: "1:57492839456:web:f787b04ea87e4b9dac3045",
-  measurementId: "G-3J3K39XJ3M"
+  apiKey: process.env.FIREBASE_API_KEY || "YOUR_API_KEY",
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: process.env.FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
+  appId: process.env.FIREBASE_APP_ID || "YOUR_APP_ID"
 };
+
+// בדיקה האם הקונפיגורציה תקינה
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+if (!isConfigValid) {
+  console.warn("⚠️ הגדרות Firebase חסרות. ההתחברות לא תעבוד עד לעדכון הקובץ או הגדרת משתני סביבה.");
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

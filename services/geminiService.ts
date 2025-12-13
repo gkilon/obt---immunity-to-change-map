@@ -1,37 +1,20 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { ITCData } from '../types';
-import { GOOGLE_GENAI_API_KEY } from '../config';
 
 // ============================================================================
 // 🔑 Gemini API Setup
 // ============================================================================
 
 const getAiClient = () => {
-  // 1. Priority: Check Local Storage (User entered via UI)
-  // This is the safest way for client-side apps to avoid exposing keys in code
-  if (typeof window !== 'undefined') {
-    const localKey = localStorage.getItem('gemini_api_key');
-    if (localKey && localKey.length > 10) {
-      return new GoogleGenAI({ apiKey: localKey });
-    }
+  // בדיקה האם המפתח קיים במשתני הסביבה (Netlify)
+  // הערה: Vite עשוי להחזיר את המחרוזת "undefined" במקרים מסוימים, לכן אנו בודקים גם את זה.
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey || apiKey === "undefined" || apiKey.length < 10) {
+    throw new Error("MISSING_ENV_KEY");
   }
 
-  // 2. Fallback: Environment Variable (Injected by Vite)
-  let apiKey = process.env.API_KEY;
-  
-  // 3. Fallback: Config file (Not recommended for production, but kept for legacy)
-  if (!apiKey || apiKey === "undefined" || apiKey === "") {
-    if (GOOGLE_GENAI_API_KEY && GOOGLE_GENAI_API_KEY !== "YOUR_API_KEY_HERE" && GOOGLE_GENAI_API_KEY !== "") {
-      apiKey = GOOGLE_GENAI_API_KEY;
-    }
-  }
-  
-  if (!apiKey || apiKey === "undefined") {
-    // We don't return null here anymore to allow the UI to catch the specific error
-    // But connection test will fail gracefully
-    return null;
-  }
-  
+  // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
   return new GoogleGenAI({ apiKey });
 };
 
@@ -39,12 +22,16 @@ const getAiClient = () => {
 const formatError = (error: any): string => {
   const msg = error.message || error.toString();
   
+  if (msg.includes('MISSING_ENV_KEY')) {
+    return '⚠️ מפתח API חסר בשרת.\nיש לגשת להגדרות ב-Netlify (Environment Variables) ולהוסיף משתנה בשם API_KEY עם המפתח שלך.';
+  }
+
   if (msg.includes('403') || msg.includes('PERMISSION_DENIED') || msg.includes('disabled')) {
-    return '⛔ שגיאת הרשאה (403): ה-API של גוגל חסום או שהמפתח נפסל.\nפתרון: צור מפתח חדש ב-Google AI Studio והזן אותו בהגדרות האתר.';
+    return '⛔ שגיאת הרשאה (403): ה-API של גוגל חסום או שהמפתח נפסל.';
   }
   
   if (msg.includes('400') || msg.includes('INVALID_ARGUMENT') || msg.includes('API key not valid')) {
-    return '🔑 מפתח לא תקין (400): המפתח שהוזן שגוי.\nפתרון: בדוק בהגדרות (גלגל שיניים) שהעתקת את המפתח במלואו.';
+    return '🔑 מפתח לא תקין (400): המפתח שהוגדר ב-Netlify שגוי.';
   }
 
   if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
@@ -62,9 +49,6 @@ const formatError = (error: any): string => {
 export const testApiConnection = async (): Promise<{ success: boolean; message: string }> => {
   try {
     const ai = getAiClient();
-    if (!ai) {
-      return { success: false, message: "לא מוגדר מפתח API. אנא לחץ על כפתור ההגדרות (⚙️) והזן את המפתח שלך." };
-    }
     
     // Minimal request to test connection
     await ai.models.generateContent({
@@ -72,7 +56,7 @@ export const testApiConnection = async (): Promise<{ success: boolean; message: 
       contents: 'Test connection',
     });
     
-    return { success: true, message: "✅ חיבור תקין! המפתח נשמר ועובד מצוין." };
+    return { success: true, message: "✅ חיבור תקין ל-Gemini דרך Netlify!" };
   } catch (error: any) {
     return { success: false, message: formatError(error) };
   }
@@ -82,11 +66,6 @@ export const testApiConnection = async (): Promise<{ success: boolean; message: 
 export const analyzeITCMap = async (data: ITCData): Promise<string> => {
   try {
     const ai = getAiClient();
-    
-    if (!ai) {
-      return `שגיאה: מפתח API חסר.
-נא ללחוץ על כפתור ההגדרות (⚙️) בראש העמוד ולהזין את מפתח ה-Gemini שלך.`;
-    }
     
     const systemInstruction = `
       You are an expert organizational psychologist specializing in Robert Kegan and Lisa Lahey's "Immunity to Change" model.
@@ -129,10 +108,6 @@ export const analyzeITCMap = async (data: ITCData): Promise<string> => {
 export const generateSuggestions = async (field: keyof ITCData, currentData: ITCData): Promise<string> => {
   try {
     const ai = getAiClient();
-    
-    if (!ai) {
-      throw new Error("מפתח API חסר. הגדר אותו בהגדרות (⚙️).");
-    }
 
     let context = "";
     let task = "";
