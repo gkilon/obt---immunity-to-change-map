@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ITCData, AnalysisStatus } from './types';
 import { analyzeITCMap, generateSuggestions, testApiConnection } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, X, Mail, Lock, ShieldAlert, ShieldCheck, Layout } from 'lucide-react';
+import { FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, X, Mail, Lock, ShieldAlert, ShieldCheck, Layout, ExternalLink, Users } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -426,6 +426,33 @@ const App: React.FC = () => {
             </div>
           </div>
 
+        </div>
+
+        {/* --- 360 SYSTEM LINK --- */}
+        <div className="mt-12 bg-onyx-800/50 border border-onyx-700 rounded-lg p-6 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-bronze-500 to-transparent opacity-50"></div>
+
+          <div className="flex-1">
+             <h3 className="text-xl font-medium text-onyx-100 mb-2 flex items-center gap-2">
+               <Users className="text-bronze-500" size={20} />
+               השלב הבא: אימות מטרת השיפור (פידבק 360)
+             </h3>
+             <p className="text-onyx-300 font-light leading-relaxed">
+               לאחר שניסחתם את מטרת השיפור (טור 1), מומלץ מאוד לקבל עליה פידבק מהסביבה הקרובה (קולגות, מנהלים, חברים). 
+               היכנסו למערכת ה-360 שלנו כדי לשלוח שאלונים ולקבל תמונת מצב אמיתית.
+               <span className="block mt-1 text-sm text-onyx-500">* שימו לב: המערכת חיצונית ודורשת הרשמה נפרדת.</span>
+             </p>
+          </div>
+
+          <a 
+            href="https://gleaming-sunshine-f0c058.netlify.app/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-6 py-3 rounded-lg shadow-lg transition-all transform hover:-translate-y-1 font-medium whitespace-nowrap border border-bronze-600/50"
+          >
+            <span>מעבר למערכת 360</span>
+            <ExternalLink size={16} />
+          </a>
         </div>
 
         {/* Footer */}
