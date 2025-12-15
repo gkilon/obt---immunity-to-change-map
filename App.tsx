@@ -199,13 +199,14 @@ const App: React.FC = () => {
       {/* --- HEADER --- */}
       <header className="bg-onyx-900/90 backdrop-blur-md border-b border-onyx-700/50 sticky top-0 z-40">
         <div className="max-w-[1920px] mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4" dir="ltr">
              <div className="bg-onyx-800 p-2.5 rounded-lg border border-onyx-700 shadow-sm text-bronze-500">
                <Layout size={24} strokeWidth={1.5} />
              </div>
-             <div>
+             <div className="flex flex-col justify-center items-start text-left">
                <h1 className="text-2xl font-normal text-onyx-100 tracking-tight leading-none">OBT <span className="text-onyx-600 font-light mx-1">|</span> <span className="font-light tracking-wide text-onyx-300">Workspace</span></h1>
                <div className="flex items-center gap-3 mt-1">
+                 <p className="text-[10px] text-onyx-500 uppercase tracking-widest font-medium">Innovation in Human Capital</p>
                  {user && (
                    <span className={`text-[10px] px-2 py-0.5 rounded flex items-center gap-1 transition-all border ${isSaving ? 'bg-bronze-500/10 border-bronze-500/30 text-bronze-300' : 'bg-onyx-800 border-onyx-700 text-onyx-400'}`}>
                      <Cloud size={10} /> {isSaving ? 'SYNCING...' : 'SYNCED'}
