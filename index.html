@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OBT - כלי לניהול התהליך האישי</title>
+    <title>OBT - מפת פיתוח אישי</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
     <script>
@@ -14,37 +14,35 @@
               sans: ['Heebo', 'sans-serif'],
             },
             colors: {
-              // Redefined 'onyx' to be a Slate/Gunmetal scale (The "Middle" Ground)
               onyx: {
                 50: '#f8fafc',
                 100: '#f1f5f9',
-                200: '#e2e8f0', // High contrast text
-                300: '#cbd5e1', // Secondary text
-                400: '#94a3b8', // Muted text
+                200: '#e2e8f0',
+                300: '#cbd5e1',
+                400: '#94a3b8',
                 500: '#64748b',
                 600: '#475569',
-                700: '#334155', // Borders / Inputs
-                800: '#1e293b', // Card Backgrounds (Slate 800)
-                900: '#0f172a', // Main Background (Slate 900) - Not Black
-                950: '#020617', // Darkest accents
+                700: '#334155',
+                800: '#1e293b',
+                900: '#0f172a',
+                950: '#020617',
               },
-              // Adjusted bronze to be slightly warmer/amber to pop against slate
               bronze: {
                 50: '#fffbeb',
                 100: '#fef3c7',
                 200: '#fde68a',
                 300: '#fcd34d',
                 400: '#fbbf24',
-                500: '#f59e0b', // Amber 500
+                500: '#f59e0b',
                 600: '#d97706',
-                700: '#b45309', // Main Accent
+                700: '#b45309',
                 800: '#92400e',
                 900: '#78350f',
               },
             },
             backgroundImage: {
               'noise': "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.03%22/%3E%3C/svg%3E')",
-              'glass': 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(30, 41, 59, 0.4) 100%)', // Slate glass
+              'glass': 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(30, 41, 59, 0.4) 100%)',
             },
             boxShadow: {
               'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -75,7 +73,6 @@
 <link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-onyx-900 text-onyx-100 font-sans antialiased overflow-x-hidden selection:bg-bronze-500/30 selection:text-white relative">
-    <!-- Very subtle noise, less intrusive -->
     <div class="fixed inset-0 bg-noise pointer-events-none z-50 mix-blend-overlay opacity-50"></div>
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>

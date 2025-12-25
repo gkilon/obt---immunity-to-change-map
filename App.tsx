@@ -2,12 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ITCData, AnalysisStatus } from './types';
 import { analyzeITCMap, generateSuggestions, testApiConnection } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, X, Mail, Lock, ShieldAlert, ShieldCheck, Layout, ExternalLink, Users } from 'lucide-react';
+import { FileDown, BrainCircuit, RefreshCw, AlertCircle, Sparkles, LogIn, LogOut, Cloud, X, Mail, Lock, ShieldAlert, ShieldCheck, Layout, ExternalLink, Users, BookOpen, CheckCircle2 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-// Default empty state
 const INITIAL_DATA: ITCData = {
   column1: '',
   column2: '',
@@ -24,8 +23,8 @@ const App: React.FC = () => {
   
   const isRemoteUpdate = useRef(false);
   
-  // Auth Modal State
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showGoalGuide, setShowGoalGuide] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +35,6 @@ const App: React.FC = () => {
   const [aiMessage, setAiMessage] = useState<string>('');
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
 
-  // 1. Auth Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -54,10 +52,8 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // 2. Firestore Real-time Listener (Read)
   useEffect(() => {
     if (!user) return;
-
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -75,7 +71,6 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
-  // 3. Auto-Save to Firestore (Write)
   useEffect(() => {
     if (!user || !isDataLoaded) return;
     if (isRemoteUpdate.current) {
@@ -96,7 +91,6 @@ const App: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [data, user, isDataLoaded]);
 
-  // 4. Local Storage Backup
   useEffect(() => {
     if (!user && isDataLoaded) {
       localStorage.setItem('obt_itc_data', JSON.stringify(data));
@@ -107,7 +101,6 @@ const App: React.FC = () => {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Auth Handlers
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     setAuthError('');
@@ -168,19 +161,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleTestConnection = async () => {
-    setAiStatus(AnalysisStatus.LOADING);
-    setAiMessage('בודק חיבור...');
-    const result = await testApiConnection();
-    setAiMessage(result.message);
-    setAiStatus(result.success ? AnalysisStatus.SUCCESS : AnalysisStatus.ERROR);
-  };
-
-  const closeAiMessage = () => {
-    setAiMessage('');
-    setAiStatus(AnalysisStatus.IDLE);
-  };
-
   const clearData = () => {
     if (confirm('האם אתה בטוח? הנתונים יימחקו.')) {
       setData(INITIAL_DATA);
@@ -192,11 +172,9 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen pb-20 relative bg-onyx-900 text-onyx-200">
       
-      {/* Background Ambience - Softer and more diffused */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-bronze-500/5 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-onyx-500/5 rounded-full blur-[100px] pointer-events-none"></div>
       
-      {/* --- HEADER --- */}
       <header className="bg-onyx-900/90 backdrop-blur-md border-b border-onyx-700/50 sticky top-0 z-40">
         <div className="max-w-[1920px] mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4" dir="ltr">
@@ -217,7 +195,6 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex gap-3 items-center">
-            {/* Auth Buttons */}
             {!user ? (
               <button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 bg-onyx-200 text-onyx-900 px-6 py-2 rounded hover:bg-white transition-all font-medium text-sm shadow-sm transform hover:-translate-y-0.5">
                 <LogIn size={16} />
@@ -258,7 +235,6 @@ const App: React.FC = () => {
 
       <main className="max-w-[1920px] mx-auto px-4 py-10 sm:px-6 lg:px-8">
         
-        {/* Guest Warning */}
         {!user && (
           <div className="max-w-3xl mx-auto bg-onyx-800/50 border border-onyx-700 p-4 mb-10 rounded-lg backdrop-blur-sm flex items-center justify-center gap-3 text-center shadow-sm">
              <AlertCircle className="h-4 w-4 text-bronze-500 shrink-0" />
@@ -268,14 +244,12 @@ const App: React.FC = () => {
            </div>
         )}
         
-        {/* AI Feedback Area */}
         {(aiMessage || aiStatus === AnalysisStatus.LOADING) && (
            <div className="max-w-5xl mx-auto mb-16 animate-fade-in relative z-20">
              <div className={`bg-onyx-800 rounded-lg border relative overflow-hidden shadow-lg ${aiStatus === AnalysisStatus.ERROR ? 'border-red-900/30' : 'border-bronze-500/20'}`}>
-                {/* Decorative stripe */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-onyx-800 via-bronze-600 to-onyx-800 opacity-60"></div>
                 
-                <button onClick={closeAiMessage} className="absolute top-4 left-4 p-2 text-onyx-500 hover:text-white transition-all z-20"><X size={20} /></button>
+                <button onClick={() => setAiMessage('')} className="absolute top-4 left-4 p-2 text-onyx-500 hover:text-white transition-all z-20"><X size={20} /></button>
                 <div className="p-8 md:p-10">
                   <h2 className="text-lg font-medium mb-6 flex items-center gap-3 text-onyx-100 border-b border-onyx-700 pb-4 tracking-wide">
                     {aiStatus === AnalysisStatus.LOADING ? (
@@ -283,7 +257,7 @@ const App: React.FC = () => {
                     ) : aiStatus === AnalysisStatus.ERROR ? (
                       <><AlertCircle className="text-red-500" size={20} /> שגיאת מערכת</>
                     ) : (
-                      <><BrainCircuit className="text-bronze-500" size={20} /> ניתוח מפה</>
+                      <><BrainCircuit className="text-bronze-500" size={20} /> ניתוח מפת OBT</>
                     )}
                   </h2>
                   <div className="prose prose-invert max-w-none text-onyx-300 leading-loose text-lg font-light whitespace-pre-wrap">
@@ -294,10 +268,9 @@ const App: React.FC = () => {
            </div>
         )}
 
-        {/* --- MAIN GRID --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 min-h-[750px] items-start">
           
-          {/* COLUMN 1 */}
+          {/* COLUMN 1 - IMPROVED: Goal Writing Guide Instead of AI */}
           <div className="flex flex-col bg-onyx-800 rounded-lg border border-onyx-700/60 hover:border-bronze-500/30 transition-colors duration-300 group h-full shadow-card">
             <div className="p-6 border-b border-onyx-700/60 flex justify-between items-start relative overflow-hidden">
                <div>
@@ -313,14 +286,15 @@ const App: React.FC = () => {
                 value={data.column1}
                 onChange={(val) => updateField('column1', val)}
                 placeholder="..."
-                onAutoGenerate={() => handleGenerateSuggestion('column1')}
-                aiButtonText="עזרה בניסוח מטרת השיפור"
+                onAutoGenerate={() => setShowGoalGuide(true)}
+                aiButtonText="איך כותבים מטרה נכונה?"
+                actionIcon={BookOpen}
+                actionButtonClass="bg-onyx-700 hover:bg-onyx-600 border-onyx-600/50"
                 heightClass="h-[550px]"
               />
             </div>
           </div>
 
-          {/* COLUMN 2 */}
           <div className="flex flex-col bg-onyx-800 rounded-lg border border-onyx-700/60 hover:border-bronze-500/30 transition-colors duration-300 group h-full shadow-card">
             <div className="p-6 border-b border-onyx-700/60 flex justify-between items-start relative overflow-hidden">
                <div>
@@ -343,13 +317,9 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* COLUMN 3: SPLIT */}
           <div className="flex flex-col rounded-lg border border-onyx-700/60 overflow-hidden h-full shadow-card bg-onyx-800">
-             
-            {/* WORRIES (Top Half) */}
             <div className="flex-1 flex flex-col p-6 relative group border-b border-onyx-700/60">
               <div className="absolute inset-0 bg-gradient-to-b from-red-900/5 to-transparent pointer-events-none"></div>
-              {/* Added shrink-0 and reduced margin to ensure header stays compact */}
               <div className="flex justify-between items-center mb-2 shrink-0 relative z-10">
                  <div className="flex items-center gap-3">
                    <div className="text-red-400/80"><ShieldAlert size={18} /></div>
@@ -357,8 +327,6 @@ const App: React.FC = () => {
                  </div>
                  <span className="font-bold text-onyx-700/20 text-6xl leading-none select-none">3a</span>
               </div>
-              
-              {/* Added flex-1 and min-h-0 wrapper for TextAreaField to fill remaining space properly */}
               <div className="flex-1 min-h-0 relative z-10">
                 <TextAreaField 
                     label="" 
@@ -373,10 +341,8 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* HIDDEN COMMITMENTS (Bottom Half) */}
             <div className="flex-1 flex flex-col p-6 relative group">
                <div className="absolute inset-0 bg-gradient-to-t from-bronze-900/5 to-transparent pointer-events-none"></div>
-               {/* Added shrink-0 and reduced margin */}
                <div className="flex justify-between items-center mb-2 shrink-0 relative z-10">
                    <div className="flex items-center gap-3">
                      <div className="text-bronze-500"><ShieldCheck size={18} /></div>
@@ -384,8 +350,6 @@ const App: React.FC = () => {
                    </div>
                    <span className="font-bold text-onyx-700/20 text-6xl leading-none select-none">3b</span>
                </div>
-               
-              {/* Added flex-1 and min-h-0 wrapper */}
               <div className="flex-1 min-h-0 relative z-10">
                 <TextAreaField 
                     label="" 
@@ -394,18 +358,15 @@ const App: React.FC = () => {
                     onChange={(val) => updateField('column3_commitments', val)}
                     placeholder="..."
                     onAutoGenerate={() => handleGenerateSuggestion('column3_commitments')}
-                    aiButtonText="עזרה בהבנת הרווח הסמוי (מחויבות)"
+                    aiButtonText="עזרה בהבנת הרווח הסמוי"
                     heightClass="h-full"
                 />
               </div>
             </div>
           </div>
 
-          {/* COLUMN 4 */}
           <div className="flex flex-col bg-onyx-800 rounded-lg border border-onyx-700/60 hover:border-bronze-500/30 transition-all duration-300 group h-full shadow-card relative overflow-hidden">
-             {/* Subtle gradient overlay */}
              <div className="absolute inset-0 bg-gradient-to-br from-onyx-800 to-onyx-900 pointer-events-none -z-10"></div>
-            
             <div className="p-6 border-b border-onyx-700/60 flex justify-between items-start relative">
                <div>
                  <h2 className="font-medium text-onyx-100 text-lg tracking-wide">הנחות יסוד</h2>
@@ -429,38 +390,72 @@ const App: React.FC = () => {
 
         </div>
 
-        {/* --- 360 SYSTEM LINK --- */}
         <div className="mt-12 bg-onyx-800/50 border border-onyx-700 rounded-lg p-6 flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-bronze-500 to-transparent opacity-50"></div>
-
           <div className="flex-1">
              <h3 className="text-xl font-medium text-onyx-100 mb-2 flex items-center gap-2">
                <Users className="text-bronze-500" size={20} />
                השלב הבא: אימות מטרת השיפור (פידבק 360)
              </h3>
              <p className="text-onyx-300 font-light leading-relaxed">
-               לאחר שניסחתם את מטרת השיפור (טור 1), מומלץ מאוד לקבל עליה פידבק מהסביבה הקרובה (קולגות, מנהלים, חברים). 
-               היכנסו למערכת ה-360 שלנו כדי לשלוח שאלונים ולקבל תמונת מצב אמיתית.
-               <span className="block mt-1 text-sm text-onyx-500">* שימו לב: המערכת חיצונית ודורשת הרשמה נפרדת.</span>
+               לאחר שניסחתם את מטרת השיפור (טור 1), מומלץ מאוד לקבל עליה פידבק מהסביבה הקרובה. היכנסו למערכת ה-360 שלנו כדי לקבל תמונת מצב אמיתית.
              </p>
           </div>
-
-          <a 
-            href="https://gleaming-sunshine-f0c058.netlify.app/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-6 py-3 rounded-lg shadow-lg transition-all transform hover:-translate-y-1 font-medium whitespace-nowrap border border-bronze-600/50"
-          >
+          <a href="https://gleaming-sunshine-f0c058.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-6 py-3 rounded-lg shadow-lg transition-all transform hover:-translate-y-1 font-medium whitespace-nowrap border border-bronze-600/50">
             <span>מעבר למערכת 360</span>
             <ExternalLink size={16} />
           </a>
         </div>
 
-        {/* Footer */}
         <div className="mt-20 border-t border-onyx-800 pt-8 text-center">
           <p className="text-onyx-500 text-xs tracking-widest uppercase">OBT System | Based on Kegan & Lahey</p>
         </div>
       </main>
+
+      {/* Goal Writing Guide Modal */}
+      {showGoalGuide && (
+        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+          <div className="bg-onyx-800 rounded-lg border border-onyx-700 shadow-2xl max-w-xl w-full p-0 relative overflow-hidden flex flex-col">
+            <div className="bg-onyx-900 p-6 flex justify-between items-center border-b border-onyx-700">
+               <h3 className="text-xl font-medium text-onyx-100 flex items-center gap-3 tracking-wide">
+                 <BookOpen size={20} className="text-bronze-500" /> איך כותבים מטרה נכונה?
+               </h3>
+               <button onClick={() => setShowGoalGuide(false)} className="text-onyx-500 hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-8 bg-onyx-800 space-y-6">
+              <p className="text-onyx-300 font-light leading-relaxed">
+                כדי שמפת ה-OBT תהיה אפקטיבית, מטרת השיפור צריכה לעמוד בקריטריונים הבאים:
+              </p>
+              
+              <ul className="space-y-5">
+                {[
+                  { title: "זה חשוב לך", desc: "יש דחיפות מסוימת לשינוי ואתה חש שהתפתחות בממד זה תעשה הבדל משמעותי." },
+                  { title: "בשליטתך המלאה", desc: "זה שינוי שתלוי לגמרי בך, לא תהליך שאחרים עושים או תוצאה חיצונית." },
+                  { title: "צמיחה אישית", desc: "שינוי של צמיחה והתפתחות אישית ולא רק יעד טכני או ביצועי קר." },
+                  { title: "בעל משמעות", desc: "לשינוי יש תוצאה שיש לה משמעות והשפעה רחבה על התפקוד והסביבה." }
+                ].map((item, idx) => (
+                  <li key={idx} className="flex gap-4 items-start bg-onyx-900/40 p-4 rounded-lg border border-onyx-700/50">
+                    <CheckCircle2 className="text-bronze-500 shrink-0 mt-1" size={20} />
+                    <div>
+                      <h4 className="font-bold text-onyx-100 mb-1">{item.title}</h4>
+                      <p className="text-sm text-onyx-400 font-light leading-relaxed">{item.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="p-6 border-t border-onyx-700 bg-onyx-900 text-center">
+              <button onClick={() => setShowGoalGuide(false)} className="bg-bronze-700 text-white hover:bg-bronze-600 px-10 py-2.5 rounded font-bold transition-all shadow-lg text-sm uppercase tracking-wider border border-bronze-600/50">
+                הבנתי, תודה
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Suggestions Modal */}
       {activeSuggestion && (
@@ -474,15 +469,11 @@ const App: React.FC = () => {
                 <X size={20} />
               </button>
             </div>
-            
-            <div className="p-8 overflow-y-auto bg-onyx-800">
-              <div className="prose prose-invert prose-lg max-w-none text-onyx-200 whitespace-pre-wrap leading-relaxed font-light">
-                {activeSuggestion}
-              </div>
+            <div className="p-8 overflow-y-auto bg-onyx-800 text-onyx-200 whitespace-pre-wrap leading-relaxed font-light">
+              {activeSuggestion}
             </div>
-            
             <div className="p-6 border-t border-onyx-700 bg-onyx-900 text-center">
-              <button onClick={() => setActiveSuggestion(null)} className="bg-onyx-100 text-onyx-900 hover:bg-white px-8 py-2 rounded font-bold transition-all shadow-lg transform hover:-translate-y-0.5 text-sm uppercase tracking-wider">
+              <button onClick={() => setActiveSuggestion(null)} className="bg-onyx-100 text-onyx-900 hover:bg-white px-8 py-2 rounded font-bold transition-all text-sm uppercase tracking-wider">
                 סגור
               </button>
             </div>
@@ -506,91 +497,30 @@ const App: React.FC = () => {
                 <h3 className="text-2xl font-medium text-onyx-100 tracking-wide">
                   {authMode === 'login' ? 'כניסה למערכת' : 'יצירת חשבון'}
                 </h3>
-                <p className="text-onyx-400 mt-3 text-sm font-light">
-                  {authMode === 'login' ? 'התחבר כדי לגשת למפה שלך' : 'הצטרף אלינו כדי לשמור את ההתקדמות שלך'}
-                </p>
               </div>
 
-              {authError && (
-                <div className="bg-red-900/10 text-red-300 text-sm p-4 rounded mb-6 flex items-start gap-3 border border-red-500/20">
-                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                  <span>{authError}</span>
-                </div>
-              )}
+              {authError && <div className="bg-red-900/10 text-red-300 text-sm p-4 rounded mb-6 border border-red-500/20">{authError}</div>}
 
               <form onSubmit={handleEmailAuth} className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-onyx-400 mb-2 uppercase tracking-wider">אימייל</label>
-                  <div className="relative group">
-                    <Mail className="absolute right-4 top-3.5 text-onyx-500 group-focus-within:text-bronze-500 transition-colors" size={18} />
-                    <input 
-                      type="email" 
-                      required
-                      className="w-full pr-12 pl-4 py-3 border border-onyx-700 rounded bg-onyx-900 focus:border-bronze-500/50 outline-none transition-all text-white placeholder-onyx-600 font-light"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
+                  <input type="email" required className="w-full px-4 py-3 border border-onyx-700 rounded bg-onyx-900 focus:border-bronze-500/50 outline-none transition-all text-white font-light" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-onyx-400 mb-2 uppercase tracking-wider">סיסמה</label>
-                  <div className="relative group">
-                    <Lock className="absolute right-4 top-3.5 text-onyx-500 group-focus-within:text-bronze-500 transition-colors" size={18} />
-                    <input 
-                      type="password" 
-                      required
-                      className="w-full pr-12 pl-4 py-3 border border-onyx-700 rounded bg-onyx-900 focus:border-bronze-500/50 outline-none transition-all text-white placeholder-onyx-600 font-light"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
+                  <input type="password" required className="w-full px-4 py-3 border border-onyx-700 rounded bg-onyx-900 focus:border-bronze-500/50 outline-none transition-all text-white font-light" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-
-                <button 
-                  type="submit" 
-                  disabled={authLoading}
-                  className="w-full bg-onyx-100 hover:bg-white text-onyx-900 py-3 rounded font-bold shadow-lg transition-all flex justify-center items-center gap-2 mt-6 uppercase tracking-wider text-sm"
-                >
+                <button type="submit" disabled={authLoading} className="w-full bg-onyx-100 hover:bg-white text-onyx-900 py-3 rounded font-bold transition-all mt-6 uppercase tracking-wider text-sm">
                   {authLoading ? <RefreshCw className="animate-spin" size={18} /> : (authMode === 'login' ? 'התחבר' : 'הרשמה')}
                 </button>
               </form>
 
-              <div className="relative my-8">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-onyx-700"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-onyx-800 text-onyx-500 font-light text-xs uppercase">או באמצעות</span>
-                </div>
-              </div>
-
-              <button 
-                onClick={handleGoogleLogin}
-                type="button"
-                className="w-full bg-onyx-900 border border-onyx-700 text-onyx-300 hover:bg-onyx-700 hover:text-white font-medium py-3 rounded transition-all flex items-center justify-center gap-3 text-sm"
-              >
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100" alt="Google" />
-                Google
+              <div className="relative my-8"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-onyx-700"></div></div><div className="relative flex justify-center text-sm"><span className="px-4 bg-onyx-800 text-onyx-500 text-xs uppercase">או באמצעות</span></div></div>
+              <button onClick={handleGoogleLogin} className="w-full bg-onyx-900 border border-onyx-700 text-onyx-300 hover:bg-onyx-700 py-3 rounded transition-all flex items-center justify-center gap-3 text-sm">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 grayscale" alt="Google" /> Google
               </button>
-
-              <div className="mt-8 text-center text-sm text-onyx-400 font-light">
-                {authMode === 'login' ? (
-                  <>
-                    אין לך חשבון?{' '}
-                    <button onClick={() => { setAuthMode('register'); setAuthError(''); }} className="text-bronze-500 hover:text-bronze-400 font-medium underline">
-                      הירשם
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    יש לך חשבון?{' '}
-                    <button onClick={() => { setAuthMode('login'); setAuthError(''); }} className="text-bronze-500 hover:text-bronze-400 font-medium underline">
-                      התחבר
-                    </button>
-                  </>
-                )}
+              <div className="mt-8 text-center text-sm text-onyx-400">
+                {authMode === 'login' ? <button onClick={() => setAuthMode('register')} className="text-bronze-500 underline">הירשם</button> : <button onClick={() => setAuthMode('login')} className="text-bronze-500 underline">התחבר</button>}
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, LucideIcon } from 'lucide-react';
 
 interface TextAreaFieldProps {
   label: string;
@@ -11,6 +11,8 @@ interface TextAreaFieldProps {
   aiButtonText?: string;
   heightClass?: string;
   colorClass?: string;
+  actionIcon?: LucideIcon;
+  actionButtonClass?: string;
 }
 
 export const TextAreaField: React.FC<TextAreaFieldProps> = ({
@@ -22,7 +24,9 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   onAutoGenerate,
   aiButtonText,
   heightClass = "h-40",
-  colorClass = "" 
+  colorClass = "",
+  actionIcon: ActionIcon = Sparkles,
+  actionButtonClass = "bg-bronze-700 hover:bg-bronze-600 border-bronze-600/50"
 }) => {
   return (
     <div className="flex flex-col h-full relative group">
@@ -35,26 +39,23 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
       
       <div className="flex-1 flex flex-col relative">
         <textarea
-          // Added pb-14 to prevent text from going under the button
           className={`w-full ${heightClass} p-5 pb-14 rounded-lg border border-onyx-700/50 bg-onyx-950/30 focus:bg-onyx-950/60 focus:border-bronze-500/50 focus:ring-1 focus:ring-bronze-500/20 outline-none resize-none transition-all duration-300 text-onyx-200 placeholder:text-onyx-600 text-lg font-light leading-loose shadow-inner`}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           style={{ 
-             // Subtle dot grid
              backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)', 
              backgroundSize: '24px 24px' 
           }} 
         />
         
         {onAutoGenerate && (
-          // Positioned absolute bottom-left, always visible (no opacity transition), z-index ensures clickable
           <div className="absolute bottom-3 left-3 z-20">
             <button 
               onClick={onAutoGenerate}
-              className="text-xs font-bold text-white bg-bronze-700 hover:bg-bronze-600 border border-bronze-600/50 px-3 py-1.5 rounded shadow-lg transition-all flex items-center gap-2 tracking-wide backdrop-blur-sm"
+              className={`text-xs font-bold text-white px-3 py-1.5 rounded shadow-lg transition-all flex items-center gap-2 tracking-wide backdrop-blur-sm border ${actionButtonClass}`}
             >
-              <Sparkles size={12} />
+              <ActionIcon size={12} />
               <span>{aiButtonText || "עזרה מהמאמן"}</span>
             </button>
           </div>

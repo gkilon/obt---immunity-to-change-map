@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OBT Promo Image</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Heebo', 'sans-serif'],
+            },
+            colors: {
+              onyx: {
+                50: '#f8fafc',
+                100: '#f1f5f9',
+                200: '#e2e8f0',
+                300: '#cbd5e1',
+                400: '#94a3b8',
+                500: '#64748b',
+                600: '#475569',
+                700: '#334155',
+                800: '#1e293b',
+                900: '#0f172a',
+                950: '#020617',
+              },
+              bronze: {
+                50: '#fffbeb',
+                100: '#fef3c7',
+                200: '#fde68a',
+                300: '#fcd34d',
+                400: '#fbbf24',
+                500: '#f59e0b',
+                600: '#d97706',
+                700: '#b45309',
+                800: '#92400e',
+                900: '#78350f',
+              },
+            },
+            backgroundImage: {
+              'noise': "url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.03%22/%3E%3C/svg%3E')",
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #000;
+      }
+      .capture-area {
+        width: 1200px;
+        height: 630px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 100px rgba(0,0,0,0.8);
+      }
+      .glass-card {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- This is the area to screenshot -->
+    <div class="capture-area bg-onyx-950 flex flex-col items-center justify-center relative text-onyx-100 selection:bg-none">
+      
+      <!-- High-Intensity Background Glows -->
+      <div class="absolute top-[-30%] left-[-10%] w-[80%] h-[80%] bg-bronze-600/20 rounded-full blur-[160px]"></div>
+      <div class="absolute bottom-[-30%] right-[-10%] w-[80%] h-[80%] bg-onyx-700/20 rounded-full blur-[160px]"></div>
+      <div class="absolute inset-0 bg-noise opacity-30 pointer-events-none z-10"></div>
+      
+      <!-- Brighter Decorative Frame -->
+      <div class="absolute inset-6 border-2 border-bronze-300/40 rounded-[2.5rem] pointer-events-none z-30">
+        <div class="absolute inset-1.5 border border-bronze-200/10 rounded-[2.3rem]"></div>
+        <!-- Ornamental Corners (Brighter) -->
+        <div class="absolute top-0 left-0 w-12 h-12 border-t-[5px] border-l-[5px] border-bronze-400 rounded-tl-[2rem] -mt-[3px] -ml-[3px]"></div>
+        <div class="absolute top-0 right-0 w-12 h-12 border-t-[5px] border-r-[5px] border-bronze-400 rounded-tr-[2rem] -mt-[3px] -mr-[3px]"></div>
+        <div class="absolute bottom-0 left-0 w-12 h-12 border-b-[5px] border-l-[5px] border-bronze-400 rounded-bl-[2rem] -mb-[3px] -ml-[3px]"></div>
+        <div class="absolute bottom-0 right-0 w-12 h-12 border-b-[5px] border-r-[5px] border-bronze-400 rounded-br-[2rem] -mb-[3px] -mr-[3px]"></div>
+      </div>
+
+      <!-- Content Container -->
+      <div class="z-20 glass-card p-12 rounded-[2rem] flex flex-col items-center text-center gap-10 w-full max-w-5xl shadow-2xl">
+        
+        <!-- Icon -->
+        <div class="p-6 rounded-3xl bg-onyx-900 border border-bronze-500/30 shadow-2xl shadow-bronze-500/10 transform transition hover:scale-105">
+          <i data-lucide="layout" class="w-20 h-20 text-bronze-400"></i>
+        </div>
+
+        <!-- Logo Section -->
+        <div class="flex flex-col items-center" dir="ltr">
+            <h1 class="text-9xl font-normal text-white tracking-tighter leading-none mb-4 drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
+              OBT <span class="text-onyx-600 font-light mx-2">|</span> <span class="font-light tracking-wide text-onyx-300">Workspace</span>
+            </h1>
+            <div class="w-48 h-1.5 bg-gradient-to-r from-transparent via-bronze-400 to-transparent rounded-full my-4"></div>
+            <p class="text-2xl text-bronze-400 uppercase tracking-[0.5em] font-bold text-center w-full mt-2 drop-shadow-md">
+              Innovation in Human Capital
+            </p>
+        </div>
+
+        <!-- Main Hook Text -->
+        <div class="space-y-6">
+          <h2 class="text-6xl font-bold text-white leading-tight tracking-wide">
+            תוכנית חדשנית <span class="text-bronze-300">לפיתוח אישי בארגונים</span>
+          </h2>
+          <div class="h-px w-3/4 mx-auto bg-onyx-700"></div>
+          <p class="text-3xl text-onyx-200 font-light max-w-4xl mx-auto leading-relaxed">
+            מפת OBT: תהליך עומק לפריצת חסמים ומימוש פוטנציאל ניהולי
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <script>
+      lucide.createIcons();
+    </script>
+  </body>
+</html>
