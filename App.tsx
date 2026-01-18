@@ -379,7 +379,7 @@ const App: React.FC = () => {
                     <tr key={row.id} className="group transition-colors align-top">
                       <td className="p-4 bg-bronze-500/[0.04] border-l border-onyx-700/30">
                         <textarea 
-                          className="w-full h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
+                          className="w-full h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] block visible opacity-100"
                           value={row.assumption}
                           onChange={(e) => updateRow(row.id, 'assumption', e.target.value)}
                           placeholder="..."
@@ -387,7 +387,7 @@ const App: React.FC = () => {
                       </td>
                       <td className="p-4 bg-bronze-500/[0.02] border-l border-onyx-700/30">
                         <textarea 
-                          className="w-full h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
+                          className="w-full h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] block visible opacity-100"
                           value={row.topic}
                           onChange={(e) => updateRow(row.id, 'topic', e.target.value)}
                           placeholder="..."
@@ -396,7 +396,7 @@ const App: React.FC = () => {
                       <td className="p-4 bg-bronze-500/[0.06] border-l border-onyx-700/30 relative">
                         <div className="flex flex-col h-full gap-3">
                           <textarea 
-                            className="w-full h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
+                            className="w-full h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] block visible opacity-100"
                             value={row.smallStep}
                             onChange={(e) => updateRow(row.id, 'smallStep', e.target.value)}
                             placeholder="..."
@@ -415,7 +415,7 @@ const App: React.FC = () => {
                         <div className="flex flex-col h-full gap-3">
                           <div className="flex gap-2 h-full">
                             <textarea 
-                              className="flex-1 h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
+                              className="flex-1 h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] block visible opacity-100"
                               value={row.significantStep}
                               onChange={(e) => updateRow(row.id, 'significantStep', e.target.value)}
                               placeholder="..."
