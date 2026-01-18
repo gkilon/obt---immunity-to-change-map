@@ -1,9 +1,19 @@
-export interface ITCData {
-  column1: string; // מטרת השיפור (Improvement Goal)
-  column2: string; // מה אני עושה/לא עושה (Doing/Not Doing)
-  column3_worries: string; // תיבת הדאגות (Worries Box)
-  column3_commitments: string; // מחויבות נסתרת (Hidden Commitments)
-  column4: string; // הנחות יסוד (Big Assumptions)
+
+export interface ProgressRow {
+  id: string;
+  assumption: string;
+  topic: string;
+  smallStep: string;
+  significantStep: string;
+}
+
+export interface OBTData {
+  column1: string; 
+  column2: string; 
+  column3_worries: string; 
+  column3_commitments: string; 
+  column4: string; 
+  progressRows?: ProgressRow[];
 }
 
 export enum AnalysisStatus {
