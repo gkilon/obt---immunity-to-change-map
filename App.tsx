@@ -377,26 +377,26 @@ const App: React.FC = () => {
                 <tbody className="divide-y divide-onyx-700/30">
                   {(data.progressRows || []).map((row) => (
                     <tr key={row.id} className="group transition-colors align-top">
-                      <td className="p-4 bg-bronze-500/[0.02] border-l border-onyx-700/30">
+                      <td className="p-4 bg-bronze-500/[0.04] border-l border-onyx-700/30">
                         <textarea 
-                          className="w-full h-72 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                          className="w-full h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
                           value={row.assumption}
                           onChange={(e) => updateRow(row.id, 'assumption', e.target.value)}
                           placeholder="..."
                         />
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.01] border-l border-onyx-700/30">
+                      <td className="p-4 bg-bronze-500/[0.02] border-l border-onyx-700/30">
                         <textarea 
-                          className="w-full h-72 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                          className="w-full h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
                           value={row.topic}
                           onChange={(e) => updateRow(row.id, 'topic', e.target.value)}
                           placeholder="..."
                         />
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.03] border-l border-onyx-700/30 relative">
+                      <td className="p-4 bg-bronze-500/[0.06] border-l border-onyx-700/30 relative">
                         <div className="flex flex-col h-full gap-3">
                           <textarea 
-                            className="w-full h-72 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                            className="w-full h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
                             value={row.smallStep}
                             onChange={(e) => updateRow(row.id, 'smallStep', e.target.value)}
                             placeholder="..."
@@ -404,28 +404,28 @@ const App: React.FC = () => {
                           <div className="flex justify-start">
                             <button 
                               onClick={() => handleStepAi('small', row)}
-                              className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-4 py-2 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-lg"
+                              className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-5 py-2.5 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-xl"
                             >
                               <Sparkles size={14} /> AI Small
                             </button>
                           </div>
                         </div>
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.05] relative">
+                      <td className="p-4 bg-bronze-500/[0.08] relative">
                         <div className="flex flex-col h-full gap-3">
                           <div className="flex gap-2 h-full">
                             <textarea 
-                              className="flex-1 h-72 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                              className="flex-1 h-96 p-4 bg-onyx-950 border border-onyx-700 rounded-xl text-onyx-200 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg"
                               value={row.significantStep}
                               onChange={(e) => updateRow(row.id, 'significantStep', e.target.value)}
                               placeholder="..."
                             />
-                            <button onClick={() => deleteRow(row.id)} className="p-2 text-onyx-600 hover:text-red-400 transition-colors h-fit self-start"><Trash2 size={20} /></button>
+                            <button onClick={() => deleteRow(row.id)} className="p-2 text-onyx-600 hover:text-red-400 transition-colors h-fit self-start"><Trash2 size={24} /></button>
                           </div>
                           <div className="flex justify-start">
                             <button 
                               onClick={() => handleStepAi('big', row)}
-                              className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-4 py-2 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-lg"
+                              className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-5 py-2.5 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-xl"
                             >
                               <Sparkles size={14} /> AI Big
                             </button>
@@ -436,9 +436,9 @@ const App: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-              <div className="p-6 bg-onyx-950/20 flex justify-center">
-                <button onClick={addRow} className="flex items-center gap-2 bg-onyx-800 hover:bg-onyx-700 text-onyx-300 px-6 py-3 rounded-xl border border-onyx-700 transition-all font-bold">
-                  <Plus size={20} /> {t.addRow}
+              <div className="p-10 bg-onyx-950/20 flex justify-center">
+                <button onClick={addRow} className="flex items-center gap-3 bg-onyx-800 hover:bg-onyx-700 text-onyx-100 px-10 py-4 rounded-2xl border border-onyx-700 transition-all font-bold text-lg shadow-2xl">
+                  <Plus size={24} /> {t.addRow}
                 </button>
               </div>
             </div>
