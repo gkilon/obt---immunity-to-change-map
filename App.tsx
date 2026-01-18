@@ -45,7 +45,7 @@ const translations = {
     guideTitle: 'איך כותבים OBT?',
     guideIntro: 'ה-One Big Thing (OBT) הוא לב התהליך. הנה הקריטריונים לכתיבה נכונה:',
     guideCriteria: [
-      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצך, לא באחרים.' },
+      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצמך, לא באחרים.' },
       { title: 'בעל ערך גבוה', desc: 'בחר משהו שאם תשתפר בו, ההשפעה על חייך תהיה משמעותית.' },
       { title: 'מנוסח בחיוב', desc: 'כתוב מה אתה רוצה להשיג, ולא ממה אתה רוצה להימנע.' }
     ],
@@ -143,7 +143,7 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // --- תיקון: האזנה לשינויים ב-Firebase ללא יצירת לולאה אינסופית ---
+  // סנכרון מול Firebase (טעינה)
   useEffect(() => {
     if (!user) return;
 
@@ -153,10 +153,15 @@ const App: React.FC = () => {
         const remoteData = docSnap.data() as OBTData;
         
         setData(currentLocalData => {
-          // משווים את המידע מהשרת למידע המקומי הנוכחי
+          // בודקים אם יש שינוי אמיתי כדי למנוע רינדור אינסופי
           if (JSON.stringify(remoteData) !== JSON.stringify(currentLocalData)) {
             isRemoteUpdate.current = true;
-            return remoteData;
+            return {
+              ...INITIAL_DATA,
+              ...remoteData,
+              // מבטיחים שגם אם Firebase מחזיר אובייקט חלקי, מערך השורות יישמר
+              progressRows: remoteData.progressRows || currentLocalData.progressRows || INITIAL_DATA.progressRows
+            };
           }
           return currentLocalData;
         });
@@ -165,9 +170,9 @@ const App: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [user]); // הוסר data מהתלויות כדי למנוע ריענון כפול
+  }, [user]); // חשוב: data לא נמצא כאן יותר!
 
-  // שמירה אוטומטית ל-Firebase (Debounce)
+  // שמירה אוטומטית (Debounce)
   useEffect(() => {
     if (!user || !isDataLoaded) return;
     
@@ -299,7 +304,6 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen pb-20 relative bg-onyx-900 text-onyx-200`} dir={t.dir}>
-      {/* Decorative Glow */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-bronze-500/5 rounded-full blur-[100px] pointer-events-none"></div>
       
       <header className="bg-onyx-900/90 backdrop-blur-md border-b border-onyx-700/50 sticky top-0 z-40">
@@ -389,7 +393,7 @@ const App: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-onyx-700/30">
-                  {(data.progressRows || []).map((row) => (
+                  {(data?.progressRows || INITIAL_DATA.progressRows).map((row) => (
                     <tr key={row.id} className="group transition-colors align-top">
                       <td className="p-4 bg-bronze-500/[0.02] border-l border-onyx-700/30">
                         <textarea 
@@ -460,7 +464,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Modals and Overlays (Suggestion, Guide, Login) */}
       {activeSuggestion && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
           <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden flex flex-col max-h-[85vh]">
