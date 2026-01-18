@@ -46,7 +46,7 @@ const translations = {
     guideTitle: 'איך כותבים OBT?',
     guideIntro: 'ה-One Big Thing (OBT) הוא לב התהליך. הנה הקריטריונים לכתיבה נכונה:',
     guideCriteria: [
-      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצך, לא באחרים.' },
+      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצמך, לא באחרים.' },
       { title: 'בעל ערך גבוה', desc: 'בחר משהו שאם תשתפר בו, ההשפעה על חייך תהיה משמעותית.' },
       { title: 'מנוסח בחיוב', desc: 'כתוב מה אתה רוצה להשיג, ולא ממה אתה רוצה להימנע.' }
     ],
@@ -247,7 +247,13 @@ const App: React.FC = () => {
     const thinkingMsg = lang === 'he' ? "המאמן מייצר דוגמאות..." : "Coach is generating examples...";
     setActiveSuggestion(thinkingMsg);
     try {
-      const result = await generateStepSuggestion(type, { ...data, column4: row.assumption || data.column4, column2: row.topic }, lang);
+      // Create a temporary data object that prioritizes the progress row's context
+      const contextData: OBTData = {
+        ...data,
+        column4: row.assumption || data.column4, // Big Assumption to test
+        column2: row.topic || data.column2        // Use Row Topic (Column 2 of Table) instead of Main Map Column 2
+      };
+      const result = await generateStepSuggestion(type, contextData, lang);
       setActiveSuggestion(result);
       setAiStatus(AnalysisStatus.IDLE);
     } catch (e: any) {
