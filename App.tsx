@@ -358,7 +358,7 @@ const App: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="animate-fade-in max-w-[1920px] mx-auto px-4">
+          <div className="max-w-[1920px] mx-auto px-4">
             <div className="mb-14 text-center">
               <h2 className="text-5xl font-bold text-onyx-100 mb-4 tracking-tight">{t.progressTitle}</h2>
               <p className="text-onyx-400 text-xl font-light">{t.progressSub}</p>
