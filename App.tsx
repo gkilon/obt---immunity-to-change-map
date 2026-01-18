@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { OBTData, AnalysisStatus, ProgressRow } from './types';
 import { analyzeOBTMap, generateSuggestions, generateStepSuggestion } from './services/geminiService';
@@ -46,7 +45,7 @@ const translations = {
     guideTitle: 'איך כותבים OBT?',
     guideIntro: 'ה-One Big Thing (OBT) הוא לב התהליך. הנה הקריטריונים לכתיבה נכונה:',
     guideCriteria: [
-      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצמך, לא באחרים.' },
+      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצך, לא באחרים.' },
       { title: 'בעל ערך גבוה', desc: 'בחר משהו שאם תשתפר בו, ההשפעה על חייך תהיה משמעותית.' },
       { title: 'מנוסח בחיוב', desc: 'כתוב מה אתה רוצה להשיג, ולא ממה אתה רוצה להימנע.' }
     ],
@@ -131,6 +130,7 @@ const App: React.FC = () => {
   const [aiStatus, setAiStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
 
+  // האזנה למצב התחברות
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -143,38 +143,51 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // --- תיקון: האזנה לשינויים ב-Firebase ללא יצירת לולאה אינסופית ---
   useEffect(() => {
     if (!user) return;
+
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const remoteData = docSnap.data() as OBTData;
-        if (JSON.stringify(remoteData) !== JSON.stringify(data)) {
-          isRemoteUpdate.current = true;
-          setData(remoteData);
-        }
+        
+        setData(currentLocalData => {
+          // משווים את המידע מהשרת למידע המקומי הנוכחי
+          if (JSON.stringify(remoteData) !== JSON.stringify(currentLocalData)) {
+            isRemoteUpdate.current = true;
+            return remoteData;
+          }
+          return currentLocalData;
+        });
       }
       setIsDataLoaded(true);
     });
-    return () => unsubscribe();
-  }, [user, data]);
 
+    return () => unsubscribe();
+  }, [user]); // הוסר data מהתלויות כדי למנוע ריענון כפול
+
+  // שמירה אוטומטית ל-Firebase (Debounce)
   useEffect(() => {
     if (!user || !isDataLoaded) return;
+    
     if (isRemoteUpdate.current) {
       isRemoteUpdate.current = false;
       return;
     }
+
     const saveData = async () => {
       setIsSaving(true);
       try {
         await setDoc(doc(db, 'users', user.uid), data, { merge: true });
+        localStorage.setItem('obt_data', JSON.stringify(data));
       } catch (error) {
         console.error("Error saving data:", error);
       } finally {
         setTimeout(() => setIsSaving(false), 500);
       }
     };
+
     const timeoutId = setTimeout(saveData, 1000); 
     return () => clearTimeout(timeoutId);
   }, [data, user, isDataLoaded]);
@@ -286,6 +299,7 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen pb-20 relative bg-onyx-900 text-onyx-200`} dir={t.dir}>
+      {/* Decorative Glow */}
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-bronze-500/5 rounded-full blur-[100px] pointer-events-none"></div>
       
       <header className="bg-onyx-900/90 backdrop-blur-md border-b border-onyx-700/50 sticky top-0 z-40">
@@ -358,7 +372,7 @@ const App: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="max-w-[1920px] mx-auto px-4">
+          <div className="animate-fade-in max-w-[1920px] mx-auto px-4">
             <div className="mb-14 text-center">
               <h2 className="text-5xl font-bold text-onyx-100 mb-4 tracking-tight">{t.progressTitle}</h2>
               <p className="text-onyx-400 text-xl font-light">{t.progressSub}</p>
@@ -446,6 +460,7 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {/* Modals and Overlays (Suggestion, Guide, Login) */}
       {activeSuggestion && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
           <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden flex flex-col max-h-[85vh]">
