@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { OBTData, AnalysisStatus, ProgressRow } from './types';
 import { analyzeOBTMap, generateSuggestions, generateStepSuggestion } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { BrainCircuit, RefreshCw, Sparkles, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { BrainCircuit, RefreshCw, Sparkles, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, CheckCircle2, ExternalLink } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -45,11 +46,12 @@ const translations = {
     guideTitle: 'איך כותבים OBT?',
     guideIntro: 'ה-One Big Thing (OBT) הוא לב התהליך. הנה הקריטריונים לכתיבה נכונה:',
     guideCriteria: [
-      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצמך, לא באחרים.' },
+      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצך, לא באחרים.' },
       { title: 'בעל ערך גבוה', desc: 'בחר משהו שאם תשתפר בו, ההשפעה על חייך תהיה משמעותית.' },
       { title: 'מנוסח בחיוב', desc: 'כתוב מה אתה רוצה להשיג, ולא ממה אתה רוצה להימנע.' }
     ],
-    guideClose: 'הבנתי, בואו נתחיל'
+    guideClose: 'הבנתי, בואו נתחיל',
+    link360: 'מעבר לשאלון 360'
   },
   en: {
     dir: 'ltr' as const,
@@ -92,7 +94,8 @@ const translations = {
       { title: 'High Value', desc: 'Choose something that will have a significant impact if achieved.' },
       { title: 'Positively Framed', desc: 'State what you want to achieve, rather than what you want to avoid.' }
     ],
-    guideClose: 'Got it, let\'s start'
+    guideClose: 'Got it, let\'s start',
+    link360: 'Go to 360 Questionnaire'
   }
 };
 
@@ -130,7 +133,6 @@ const App: React.FC = () => {
   const [aiStatus, setAiStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
 
-  // האזנה למצב התחברות
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -143,44 +145,28 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // סנכרון מול Firebase (טעינה)
   useEffect(() => {
     if (!user) return;
-
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const remoteData = docSnap.data() as OBTData;
-        
-        setData(currentLocalData => {
-          // בודקים אם יש שינוי אמיתי כדי למנוע רינדור אינסופי
-          if (JSON.stringify(remoteData) !== JSON.stringify(currentLocalData)) {
-            isRemoteUpdate.current = true;
-            return {
-              ...INITIAL_DATA,
-              ...remoteData,
-              // מבטיחים שגם אם Firebase מחזיר אובייקט חלקי, מערך השורות יישמר
-              progressRows: remoteData.progressRows || currentLocalData.progressRows || INITIAL_DATA.progressRows
-            };
-          }
-          return currentLocalData;
-        });
+        if (JSON.stringify(remoteData) !== JSON.stringify(data)) {
+          isRemoteUpdate.current = true;
+          setData(remoteData);
+        }
       }
       setIsDataLoaded(true);
     });
-
     return () => unsubscribe();
-  }, [user]); // חשוב: data לא נמצא כאן יותר!
+  }, [user]);
 
-  // שמירה אוטומטית (Debounce)
   useEffect(() => {
     if (!user || !isDataLoaded) return;
-    
     if (isRemoteUpdate.current) {
       isRemoteUpdate.current = false;
       return;
     }
-
     const saveData = async () => {
       setIsSaving(true);
       try {
@@ -192,35 +178,9 @@ const App: React.FC = () => {
         setTimeout(() => setIsSaving(false), 500);
       }
     };
-
     const timeoutId = setTimeout(saveData, 1000); 
     return () => clearTimeout(timeoutId);
   }, [data, user, isDataLoaded]);
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError('');
-    try {
-      if (authMode === 'login') await signInWithEmailAndPassword(auth, email, password);
-      else await createUserWithEmailAndPassword(auth, email, password);
-      setShowLoginModal(false);
-    } catch (err: any) {
-      setAuthError(err.message);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      setShowLoginModal(false);
-    } catch (err: any) {
-      setAuthError(err.message);
-    }
-  };
 
   const updateField = (field: keyof OBTData, value: string) => {
     setData(prev => ({ ...prev, [field]: value }));
@@ -266,7 +226,6 @@ const App: React.FC = () => {
       setAiStatus(AnalysisStatus.IDLE);
     } catch (e: any) {
       setAiStatus(AnalysisStatus.ERROR);
-      setActiveSuggestion(lang === 'he' ? "שגיאה בייצור הצעות." : "Error generating suggestions.");
     }
   };
 
@@ -280,21 +239,15 @@ const App: React.FC = () => {
       setAiStatus(AnalysisStatus.SUCCESS);
     } catch (e: any) {
       setAiStatus(AnalysisStatus.ERROR);
-      setActiveSuggestion(lang === 'he' ? "שגיאה בניתוח המפה." : "Error analyzing the map.");
     }
   };
 
   const handleStepAi = async (type: 'small' | 'big', row: ProgressRow) => {
     setAiStatus(AnalysisStatus.LOADING);
-    const thinkingMsg = lang === 'he' ? "המאמן בוחן את הנושא והנחת היסוד ומייצר דוגמאות..." : "Coach is analyzing the topic and assumption...";
+    const thinkingMsg = lang === 'he' ? "המאמן מייצר דוגמאות..." : "Coach is generating examples...";
     setActiveSuggestion(thinkingMsg);
-    const contextData: any = { 
-      ...data, 
-      column4: row.assumption || data.column4,
-      column2: row.topic 
-    };
     try {
-      const result = await generateStepSuggestion(type, contextData, lang);
+      const result = await generateStepSuggestion(type, { ...data, column4: row.assumption || data.column4, column2: row.topic }, lang);
       setActiveSuggestion(result);
       setAiStatus(AnalysisStatus.IDLE);
     } catch (e: any) {
@@ -332,13 +285,7 @@ const App: React.FC = () => {
             {!user ? (
               <button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 bg-onyx-100 text-onyx-950 px-6 py-2 rounded hover:bg-white transition-all font-medium text-sm shadow-md"><LogIn size={16} /> {t.login}</button>
             ) : (
-              <div className="flex items-center gap-2 bg-onyx-800/80 rounded pl-1 pr-4 py-1 border border-onyx-700">
-                 <div className="hidden md:block mx-2 text-right">
-                    <p className="text-[10px] text-bronze-500 font-bold uppercase">{lang === 'he' ? 'מחובר' : 'LOGGED IN'}</p>
-                    <p className="text-xs font-medium text-onyx-300 leading-none">{user.email?.split('@')[0]}</p>
-                 </div>
-                 <button onClick={() => signOut(auth)} className="bg-onyx-700 hover:bg-red-900/30 text-onyx-400 p-2 rounded transition-colors"><LogOut size={14} /></button>
-              </div>
+              <button onClick={() => signOut(auth)} className="bg-onyx-700 hover:bg-red-900/30 text-onyx-400 p-2 rounded transition-colors"><LogOut size={14} /></button>
             )}
           </div>
         </div>
@@ -348,8 +295,19 @@ const App: React.FC = () => {
         {activeTab === 'map' ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 min-h-[750px] items-start">
-              <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-2 h-full shadow-card backdrop-blur-sm">
+              <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-2 h-full shadow-card backdrop-blur-sm flex flex-col">
                 <TextAreaField label={t.col1Title} subLabel={t.col1Desc} value={data.column1} onChange={(val) => updateField('column1', val)} onAutoGenerate={() => setShowGoalGuide(true)} aiButtonText={t.col1GuideBtn} actionIcon={Lightbulb} heightClass="h-[550px]" dir={t.dir as "rtl" | "ltr"} />
+                <div className="mt-4 pt-4 border-t border-onyx-700/30">
+                  <a 
+                    href="https://gleaming-sunshine-f0c058.netlify.app/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-onyx-800/50 hover:bg-onyx-700 text-bronze-400 rounded-xl transition-all font-medium text-sm border border-onyx-700/50"
+                  >
+                    <ExternalLink size={16} />
+                    {t.link360}
+                  </a>
+                </div>
               </div>
               <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-2 h-full shadow-card backdrop-blur-sm">
                 <TextAreaField label={t.col2Title} subLabel={t.col2Desc} value={data.column2} onChange={(val) => updateField('column2', val)} onAutoGenerate={() => handleGenerateSuggestion('column2')} aiButtonText={t.col2AiBtn} heightClass="h-[550px]" dir={t.dir as "rtl" | "ltr"} />
@@ -393,70 +351,62 @@ const App: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-onyx-700/30">
-                  {(data?.progressRows || INITIAL_DATA.progressRows).map((row) => (
+                  {(data.progressRows || []).map((row) => (
                     <tr key={row.id} className="group transition-colors align-top">
-                      <td className="p-4 bg-bronze-500/[0.02] border-l border-onyx-700/30">
+                      <td className="p-4 bg-bronze-500/[0.04] border-l border-onyx-700/30">
                         <textarea 
-                          className="w-full h-56 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                          className="w-full h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg block visible"
                           value={row.assumption}
                           onChange={(e) => updateRow(row.id, 'assumption', e.target.value)}
-                          placeholder="..."
                         />
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.01] border-l border-onyx-700/30">
+                      <td className="p-4 bg-bronze-500/[0.02] border-l border-onyx-700/30">
                         <textarea 
-                          className="w-full h-56 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                          className="w-full h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg block visible"
                           value={row.topic}
                           onChange={(e) => updateRow(row.id, 'topic', e.target.value)}
-                          placeholder="..."
                         />
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.03] border-l border-onyx-700/30 relative">
+                      <td className="p-4 bg-bronze-500/[0.06] border-l border-onyx-700/30 relative">
                         <div className="flex flex-col h-full gap-3">
                           <textarea 
-                            className="w-full flex-1 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                            className="w-full h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg block visible"
                             value={row.smallStep}
                             onChange={(e) => updateRow(row.id, 'smallStep', e.target.value)}
-                            placeholder="..."
                           />
-                          <div className="flex justify-start">
-                            <button 
-                              onClick={() => handleStepAi('small', row)}
-                              className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-4 py-2 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-lg"
-                            >
-                              <Sparkles size={14} /> AI Small
-                            </button>
-                          </div>
+                          <button 
+                            onClick={() => handleStepAi('small', row)}
+                            className="bg-bronze-700 hover:bg-bronze-600 text-white px-5 py-2.5 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-xl flex items-center gap-2"
+                          >
+                            <Sparkles size={14} /> AI Suggestions
+                          </button>
                         </div>
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.05] relative">
+                      <td className="p-4 bg-bronze-500/[0.08] relative">
                         <div className="flex flex-col h-full gap-3">
-                          <div className="flex gap-2 flex-1">
+                          <div className="flex gap-2 h-full">
                             <textarea 
-                              className="flex-1 p-4 bg-onyx-950/40 border border-onyx-700/50 rounded-xl text-onyx-200 outline-none focus:border-bronze-500/50 transition-all resize-none font-medium text-lg leading-relaxed"
+                              className="flex-1 h-96 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg block visible"
                               value={row.significantStep}
                               onChange={(e) => updateRow(row.id, 'significantStep', e.target.value)}
-                              placeholder="..."
                             />
-                            <button onClick={() => deleteRow(row.id)} className="p-2 text-onyx-600 hover:text-red-400 transition-colors h-fit self-start"><Trash2 size={20} /></button>
+                            <button onClick={() => deleteRow(row.id)} className="p-2 text-onyx-600 hover:text-red-400 transition-colors h-fit self-start"><Trash2 size={24} /></button>
                           </div>
-                          <div className="flex justify-start">
-                            <button 
-                              onClick={() => handleStepAi('big', row)}
-                              className="flex items-center gap-2 bg-bronze-700 hover:bg-bronze-600 text-white px-4 py-2 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-lg"
-                            >
-                              <Sparkles size={14} /> AI Big
-                            </button>
-                          </div>
+                          <button 
+                            onClick={() => handleStepAi('big', row)}
+                            className="bg-bronze-700 hover:bg-bronze-600 text-white px-5 py-2.5 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold uppercase tracking-widest shadow-xl flex items-center gap-2"
+                          >
+                            <Sparkles size={14} /> AI Suggestions
+                          </button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="p-6 bg-onyx-950/20 flex justify-center">
-                <button onClick={addRow} className="flex items-center gap-2 bg-onyx-800 hover:bg-onyx-700 text-onyx-300 px-6 py-3 rounded-xl border border-onyx-700 transition-all font-bold">
-                  <Plus size={20} /> {t.addRow}
+              <div className="p-10 bg-onyx-950/20 flex justify-center">
+                <button onClick={addRow} className="flex items-center gap-3 bg-onyx-800 hover:bg-onyx-700 text-onyx-100 px-10 py-4 rounded-2xl border border-onyx-700 transition-all font-bold text-lg shadow-2xl">
+                  <Plus size={24} /> {t.addRow}
                 </button>
               </div>
             </div>
@@ -477,55 +427,6 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {showGoalGuide && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
-          <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-xl w-full p-0 relative overflow-hidden">
-            <div className="bg-onyx-950/80 p-8 flex justify-between items-center border-b border-onyx-700/50">
-               <h3 className="text-2xl font-medium text-onyx-100 flex items-center gap-4"><Lightbulb size={24} className="text-bronze-400" /> {t.guideTitle}</h3>
-               <button onClick={() => setShowGoalGuide(false)} className="text-onyx-500 hover:text-white transition-colors bg-onyx-800 p-2 rounded-lg"><X size={24} /></button>
-            </div>
-            <div className="p-10 space-y-8">
-              <ul className="space-y-5">
-                {t.guideCriteria.map((item, idx) => (
-                  <li key={idx} className="flex gap-5 items-start bg-onyx-900/50 p-6 rounded-2xl border border-onyx-700/50">
-                    <CheckCircle2 className="text-bronze-400 shrink-0 mt-1" size={24} />
-                    <div><h4 className="font-bold text-onyx-100 mb-2 text-lg">{item.title}</h4><p className="text-onyx-400 font-light leading-relaxed">{item.desc}</p></div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="p-8 border-t border-onyx-700/50 bg-onyx-950/50 text-center">
-              <button onClick={() => setShowGoalGuide(false)} className="bg-bronze-700 text-white hover:bg-bronze-600 px-12 py-3 rounded-xl font-bold text-lg shadow-xl">{t.guideClose}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showLoginModal && (
-          <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" dir={t.dir}>
-            <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-md w-full p-12 relative overflow-hidden">
-              <button onClick={() => setShowLoginModal(false)} className={`absolute top-6 ${t.dir === 'rtl' ? 'left-6' : 'right-6'} text-onyx-500 hover:text-white`}><X size={20} /></button>
-              <div className="text-center mb-10">
-                <div className="bg-onyx-950 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-onyx-700"><LogIn className="text-bronze-400" size={32} /></div>
-                <h3 className="text-3xl font-medium text-onyx-100 tracking-tight">{authMode === 'login' ? t.login : 'Sign Up'}</h3>
-              </div>
-              <form onSubmit={handleEmailAuth} className="space-y-5">
-                <input type="email" required placeholder="Email" className="w-full px-5 py-4 rounded-xl bg-onyx-950 border border-onyx-700 focus:border-bronze-500 outline-none text-onyx-100" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <input type="password" required placeholder="Password" className="w-full px-5 py-4 rounded-xl bg-onyx-950 border border-onyx-700 focus:border-bronze-500 outline-none text-onyx-100" value={password} onChange={(e) => setPassword(e.target.value)} />
-                {authError && <p className="text-red-500 text-xs text-center">{authError}</p>}
-                <button type="submit" disabled={authLoading} className="w-full bg-onyx-100 text-onyx-950 py-4 rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl hover:bg-white transition-all">{authMode === 'login' ? t.login : 'Sign Up'}</button>
-              </form>
-              <div className="relative my-8"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-onyx-700"></div></div><div className="relative flex justify-center text-xs"><span className="px-4 bg-onyx-800 text-onyx-500 uppercase tracking-widest">OR</span></div></div>
-              <button onClick={handleGoogleLogin} className="w-full bg-onyx-950 border border-onyx-700 py-4 rounded-xl flex items-center justify-center gap-4 text-sm text-onyx-300 font-medium hover:bg-onyx-900 transition-all">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" /> Continue with Google
-              </button>
-              <div className="mt-8 text-center text-sm text-onyx-400">
-                {authMode === 'login' ? <button onClick={() => setAuthMode('register')} className="text-bronze-400 underline">Sign Up</button> : <button onClick={() => setAuthMode('login')} className="text-bronze-400 underline">Login</button>}
-              </div>
-            </div>
-          </div>
       )}
     </div>
   );
