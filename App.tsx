@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { OBTData, AnalysisStatus, ProgressRow } from './types';
 import { analyzeOBTMap, generateSuggestions, generateStepSuggestion } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { BrainCircuit, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, Sparkles, ExternalLink, Mail, Lock, UserPlus, Info, Target, Zap } from 'lucide-react';
+import { BrainCircuit, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, Sparkles, ExternalLink, Mail, Lock, UserPlus, Info, Target, Zap, MessageSquare, FastForward, Flag } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -443,11 +443,12 @@ const App: React.FC = () => {
         ) : (
           <div className="animate-fade-in max-w-[1920px] mx-auto px-4">
             <div className="mb-14 text-center">
-              <h2 className="text-5xl font-bold text-onyx-100 mb-4 tracking-tight">{t.progressTitle}</h2>
-              <p className="text-onyx-400 text-xl font-light">{t.progressSub}</p>
+              <h2 className="text-3xl md:text-5xl font-bold text-onyx-100 mb-4 tracking-tight">{t.progressTitle}</h2>
+              <p className="text-onyx-400 text-lg md:text-xl font-light">{t.progressSub}</p>
             </div>
 
-            <div className="bg-onyx-800/20 rounded-3xl border border-onyx-700/50 shadow-2xl backdrop-blur-md overflow-hidden">
+            {/* Desktop View */}
+            <div className="hidden md:block bg-onyx-800/20 rounded-3xl border border-onyx-700/50 shadow-2xl backdrop-blur-md overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-onyx-950 text-onyx-100 text-lg font-bold border-b border-onyx-700/50">
@@ -489,17 +490,62 @@ const App: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-              <div className="p-10 bg-onyx-950/20 flex justify-center">
-                <button onClick={addRow} className="flex items-center gap-3 bg-onyx-800 hover:bg-onyx-700 text-onyx-100 px-10 py-4 rounded-2xl border border-onyx-700 transition-all font-bold text-lg shadow-2xl">
-                  <Plus size={24} /> {t.addRow}
-                </button>
-              </div>
+            </div>
+
+            {/* Mobile View (Cards) */}
+            <div className="md:hidden space-y-8">
+              {(data.progressRows || []).map((row) => (
+                <div key={row.id} className="bg-onyx-800/40 border border-onyx-700 rounded-3xl p-6 shadow-xl space-y-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-1 bg-bronze-500 h-full opacity-50"></div>
+                  
+                  <div className="flex justify-between items-center border-b border-onyx-700 pb-3">
+                    <span className="text-onyx-400 text-xs font-bold uppercase tracking-widest">{lang === 'he' ? 'מעקב התקדמות' : 'Progress Track'}</span>
+                    <button onClick={() => deleteRow(row.id)} className="text-onyx-600 hover:text-red-400 transition-colors p-1"><Trash2 size={20} /></button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-bronze-400 text-sm font-bold flex items-center gap-2"><Target size={14} /> {t.headerAssumption}</label>
+                    <textarea className="w-full h-32 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.assumption} onChange={(e) => updateRow(row.id, 'assumption', e.target.value)} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-onyx-300 text-sm font-bold flex items-center gap-2"><MessageSquare size={14} /> {t.headerTopic}</label>
+                    <textarea className="w-full h-24 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.topic} onChange={(e) => updateRow(row.id, 'topic', e.target.value)} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-onyx-300 text-sm font-bold flex items-center gap-2"><FastForward size={14} /> {t.headerSmall}</label>
+                    <div className="space-y-3">
+                      <textarea className="w-full h-32 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.smallStep} onChange={(e) => updateRow(row.id, 'smallStep', e.target.value)} />
+                      <button onClick={() => handleStepAi('small', row)} className="bg-onyx-800 hover:bg-onyx-700 text-bronze-400 px-4 py-2 rounded-lg border border-onyx-700 transition-all text-xs font-bold flex items-center gap-2">
+                        <Sparkles size={14} /> AI Suggestions
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-bronze-500 text-sm font-bold flex items-center gap-2"><Flag size={14} /> {t.headerBig}</label>
+                    <div className="space-y-3">
+                      <textarea className="w-full h-32 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.significantStep} onChange={(e) => updateRow(row.id, 'significantStep', e.target.value)} />
+                      <button onClick={() => handleStepAi('big', row)} className="bg-bronze-700 hover:bg-bronze-600 text-white px-4 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 shadow-lg">
+                        <Sparkles size={14} /> AI Suggestions
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-10 flex justify-center mt-6">
+              <button onClick={addRow} className="flex items-center gap-3 bg-onyx-800 hover:bg-onyx-700 text-onyx-100 px-10 py-4 rounded-2xl border border-onyx-700 transition-all font-bold text-lg shadow-2xl">
+                <Plus size={24} /> {t.addRow}
+              </button>
             </div>
           </div>
         )}
       </main>
 
-      {/* Login Modal */}
+      {/* Modals remain the same... */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
           <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
@@ -546,7 +592,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Goal Writing Guide Modal */}
       {showGoalGuide && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
           <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden flex flex-col max-h-[90vh]">
@@ -577,7 +622,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* AI Suggestion Modal */}
       {activeSuggestion && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
           <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden flex flex-col max-h-[85vh]">
