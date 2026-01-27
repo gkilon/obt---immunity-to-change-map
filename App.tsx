@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { OBTData, AnalysisStatus, ProgressRow } from './types';
 import { analyzeOBTMap, generateSuggestions, generateStepSuggestion } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { BrainCircuit, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, Sparkles, ExternalLink, Mail, Lock, UserPlus } from 'lucide-react';
+import { BrainCircuit, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, Sparkles, ExternalLink, Mail, Lock, UserPlus, Info, Target, Zap } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -29,27 +29,40 @@ const translations = {
     addRow: 'הוסף שורה חדשה',
     aiCoachTitle: 'המאמן הדיגיטלי מציע',
     close: 'סגור',
-    col1Title: 'One Big Thing',
-    col1Desc: 'היעד המרכזי לשיפור עצמי',
+    col1Title: 'OBT - המחויבות שאני מציב לעצמי',
+    col1Desc: 'היעד המרכזי לשיפור עצמי - מה הדבר האחד שחשוב לי לשפר?',
     col1GuideBtn: 'מדריך לכתיבה',
-    col2Title: 'התנהגויות מעכבות',
-    col2Desc: 'מה אני עושה במקום לקדם את היעד?',
+    col2Title: 'התנהגויות סותרות',
+    col2Desc: 'מה אני עושה או לא עושה שסותר את המחויבות שלי בטור 1?',
     col2AiBtn: 'הצעות AI',
-    col3aTitle: 'תיבת הפחד',
-    col3aDesc: 'דאגות שעולות כשמפסיקים את ההתנהגות',
+    col3aTitle: 'תיבת הדאגות',
+    col3aDesc: 'הדאגות שעולות כשאני מדמיין את עצמי פועל הפוך מההתנהגויות בטור 2',
     col3aAiBtn: 'הצעות AI',
     col3bTitle: 'מחויבויות מתחרות',
-    col3bDesc: 'המוטיבציה הסמויה לשמר את המצב',
+    col3bDesc: 'המוטיבציה הסמויה - למה אני מחויב כדי להרגיש בטוח?',
     col3bAiBtn: 'הצעות AI',
     col4Title: 'הנחות יסוד',
-    col4Desc: 'האמונות שמחזיקות את המנגנון',
+    col4Desc: 'האמונות המגבילות שיוצרות את החסינות לשינוי',
     col4AiBtn: 'הצעות AI',
-    guideTitle: 'איך כותבים OBT?',
-    guideIntro: 'ה-One Big Thing (OBT) הוא לב התהליך. הנה הקריטריונים לכתיבה נכונה:',
+    guideTitle: 'איך כותבים OBT איכותי?',
+    guideIntro: 'OBT מוצלח הוא כזה שמתמקד בשינוי פנימי ובהתפתחות אישית, ולא רק בביצוע משימות חיצוניות.',
     guideCriteria: [
-      { title: 'ממוקד בשיפור עצמי', desc: 'התמקד בשינוי שאתה רוצה לחולל בעצמך, לא באחרים.' },
-      { title: 'בעל ערך גבוה', desc: 'בחר משהו שאם תשתפר בו, ההשפעה על חייך תהיה משמעותית.' },
-      { title: 'מנוסח בחיוב', desc: 'כתוב מה אתה רוצה להשיג, ולא ממה אתה רוצה להימנע.' }
+      { 
+        title: 'מיקוד עצמי', 
+        desc: 'המחויבות צריכה להיות עליכם ועל היכולת שלכם להשתנות, ולא על ניסיון לשנות אחרים.' 
+      },
+      { 
+        title: 'שינוי התנהגותי', 
+        desc: 'הגדירו יעד שנוגע לאופן שבו אתם פועלים ומגיבים, ולא רק לתוצאה טכנית או פרויקט ספציפי.' 
+      },
+      { 
+        title: 'חיבור למשמעות', 
+        desc: 'כתבו למה השינוי הזה חשוב לכם ומה הוא יאפשר לכם להשיג או להיות ברמה המקצועית והאישית.' 
+      },
+      { 
+        title: 'יציאה מאזור הנוחות', 
+        desc: 'בחרו נושא שבאמת מאתגר אתכם ומעורר בכם תחושת דריכות - שם נמצאת ההתפתחות האמיתית.' 
+      }
     ],
     guideClose: 'הבנתי, בואו נתחיל',
     link360: 'מעבר לשאלון 360',
@@ -83,27 +96,28 @@ const translations = {
     addRow: 'Add New Row',
     aiCoachTitle: 'Digital Coach Suggestions',
     close: 'Close',
-    col1Title: 'One Big Thing',
-    col1Desc: 'Central self-improvement goal',
+    col1Title: 'OBT - My Primary Commitment',
+    col1Desc: 'What is the one thing you are committed to improving?',
     col1GuideBtn: 'Writing Guide',
-    col2Title: 'Counter-productive Behaviors',
-    col2Desc: 'What do I do instead of moving forward?',
+    col2Title: 'Contradictory Behaviors',
+    col2Desc: 'What do you do or not do that goes against your commitment?',
     col2AiBtn: 'AI Suggestions',
     col3aTitle: 'Worry Box',
-    col3aDesc: 'Fears that arise when stopping behaviors',
+    col3aDesc: 'Fears that arise when you imagine doing the opposite of Col 2',
     col3aAiBtn: 'AI Suggestions',
     col3bTitle: 'Competing Commitments',
-    col3bDesc: 'Hidden motivations to maintain the status quo',
+    col3bDesc: 'Hidden motivations to maintain psychological safety',
     col3bAiBtn: 'AI Suggestions',
     col4Title: 'Big Assumptions',
-    col4Desc: 'Beliefs holding the immunity in place',
+    col4Desc: 'Deep beliefs holding the immunity system in place',
     col4AiBtn: 'AI Suggestions',
-    guideTitle: 'How to write an OBT?',
-    guideIntro: 'The One Big Thing (OBT) is the heart of the process. Here are the criteria:',
+    guideTitle: 'Writing a Great OBT',
+    guideIntro: 'A successful OBT focuses on internal growth and personal development rather than just external tasks.',
     guideCriteria: [
-      { title: 'Self-Improvement Focused', desc: 'Focus on a change you want to make in yourself, not others.' },
-      { title: 'High Value', desc: 'Choose something that will have a significant impact if achieved.' },
-      { title: 'Positively Framed', desc: 'State what you want to achieve, rather than what you want to avoid.' }
+      { title: 'Self-Focus', desc: 'The commitment should be about you and your ability to change, not about trying to change others.' },
+      { title: 'Behavioral Change', desc: 'Define a goal regarding how you act and react, not just a technical outcome or project.' },
+      { title: 'Value Alignment', desc: 'State why this change matters and what it will allow you to achieve or become.' },
+      { title: 'Beyond Comfort Zone', desc: 'Choose something that truly challenges you and sparks growth through genuine effort.' }
     ],
     guideClose: 'Got it, let\'s start',
     link360: 'Go to 360 Questionnaire',
@@ -349,7 +363,17 @@ const App: React.FC = () => {
           <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 min-h-[750px] items-start">
               <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-2 h-full shadow-card backdrop-blur-sm flex flex-col">
-                <TextAreaField label={t.col1Title} subLabel={t.col1Desc} value={data.column1} onChange={(val) => updateField('column1', val)} onAutoGenerate={() => setShowGoalGuide(true)} aiButtonText={t.col1GuideBtn} actionIcon={Lightbulb} heightClass="h-[550px]" dir={t.dir as "rtl" | "ltr"} />
+                <TextAreaField 
+                  label={t.col1Title} 
+                  subLabel={t.col1Desc} 
+                  value={data.column1} 
+                  onChange={(val) => updateField('column1', val)} 
+                  onAutoGenerate={() => setShowGoalGuide(true)} 
+                  aiButtonText={t.col1GuideBtn} 
+                  actionIcon={Lightbulb} 
+                  heightClass="h-[550px]" 
+                  dir={t.dir as "rtl" | "ltr"} 
+                />
                 <div className="mt-4 pt-4 border-t border-onyx-700/30">
                   <a href="https://gleaming-sunshine-f0c058.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 bg-onyx-800/50 hover:bg-onyx-700 text-bronze-400 rounded-xl transition-all font-medium text-sm border border-onyx-700/50">
                     <ExternalLink size={16} /> {t.link360}
@@ -357,20 +381,56 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-2 h-full shadow-card backdrop-blur-sm">
-                <TextAreaField label={t.col2Title} subLabel={t.col2Desc} value={data.column2} onChange={(val) => updateField('column2', val)} onAutoGenerate={() => handleGenerateSuggestion('column2')} aiButtonText={t.col2AiBtn} heightClass="h-[550px]" dir={t.dir as "rtl" | "ltr"} />
+                <TextAreaField 
+                  label={t.col2Title} 
+                  subLabel={t.col2Desc} 
+                  value={data.column2} 
+                  onChange={(val) => updateField('column2', val)} 
+                  onAutoGenerate={() => handleGenerateSuggestion('column2')} 
+                  aiButtonText={t.col2AiBtn} 
+                  heightClass="h-[550px]" 
+                  dir={t.dir as "rtl" | "ltr"} 
+                />
               </div>
               <div className="flex flex-col gap-8 h-full">
                 <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-5 flex-1 shadow-card relative overflow-hidden backdrop-blur-sm">
                   <div className="absolute -top-4 -right-4 w-24 h-24 opacity-[0.03] rotate-12"><ShieldAlert size={96} /></div>
-                  <TextAreaField label={t.col3aTitle} subLabel={t.col3aDesc} value={data.column3_worries} onChange={(val) => updateField('column3_worries', val)} onAutoGenerate={() => handleGenerateSuggestion('column3_worries')} aiButtonText={t.col3aAiBtn} heightClass="h-44" dir={t.dir as "rtl" | "ltr"} />
+                  <TextAreaField 
+                    label={t.col3aTitle} 
+                    subLabel={t.col3aDesc} 
+                    value={data.column3_worries} 
+                    onChange={(val) => updateField('column3_worries', val)} 
+                    onAutoGenerate={() => handleGenerateSuggestion('column3_worries')} 
+                    aiButtonText={t.col3aAiBtn} 
+                    heightClass="h-44" 
+                    dir={t.dir as "rtl" | "ltr"} 
+                  />
                 </div>
                 <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-5 flex-1 shadow-card relative overflow-hidden backdrop-blur-sm">
                    <div className="absolute -top-4 -right-4 w-24 h-24 opacity-[0.03] rotate-12"><ShieldCheck size={96} /></div>
-                  <TextAreaField label={t.col3bTitle} subLabel={t.col3bDesc} value={data.column3_commitments} onChange={(val) => updateField('column3_commitments', val)} onAutoGenerate={() => handleGenerateSuggestion('column3_commitments')} aiButtonText={t.col3bAiBtn} heightClass="h-44" dir={t.dir as "rtl" | "ltr"} />
+                  <TextAreaField 
+                    label={t.col3bTitle} 
+                    subLabel={t.col3bDesc} 
+                    value={data.column3_commitments} 
+                    onChange={(val) => updateField('column3_commitments', val)} 
+                    onAutoGenerate={() => handleGenerateSuggestion('column3_commitments')} 
+                    aiButtonText={t.col3bAiBtn} 
+                    heightClass="h-44" 
+                    dir={t.dir as "rtl" | "ltr"} 
+                  />
                 </div>
               </div>
               <div className="bg-onyx-800/40 rounded-2xl border border-onyx-700/50 p-2 h-full shadow-card backdrop-blur-sm">
-                <TextAreaField label={t.col4Title} subLabel={t.col4Desc} value={data.column4} onChange={(val) => updateField('column4', val)} onAutoGenerate={() => handleGenerateSuggestion('column4')} aiButtonText={t.col4AiBtn} heightClass="h-[550px]" dir={t.dir as "rtl" | "ltr"} />
+                <TextAreaField 
+                  label={t.col4Title} 
+                  subLabel={t.col4Desc} 
+                  value={data.column4} 
+                  onChange={(val) => updateField('column4', val)} 
+                  onAutoGenerate={() => handleGenerateSuggestion('column4')} 
+                  aiButtonText={t.col4AiBtn} 
+                  heightClass="h-[550px]" 
+                  dir={t.dir as "rtl" | "ltr"} 
+                />
               </div>
             </div>
             <div className="mt-16 flex justify-center">
@@ -390,23 +450,23 @@ const App: React.FC = () => {
             <div className="bg-onyx-800/20 rounded-3xl border border-onyx-700/50 shadow-2xl backdrop-blur-md overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-onyx-950/60 text-onyx-100 text-lg font-bold">
-                    <th className="p-6 border-b border-onyx-700/50 w-[25%]">{t.headerAssumption}</th>
-                    <th className="p-6 border-b border-onyx-700/50 w-[15%]">{t.headerTopic}</th>
-                    <th className="p-6 border-b border-onyx-700/50 w-[30%]">{t.headerSmall}</th>
-                    <th className="p-6 border-b border-onyx-700/50 w-[30%]">{t.headerBig}</th>
+                  <tr className="bg-onyx-950 text-onyx-100 text-lg font-bold border-b border-onyx-700/50">
+                    <th className="p-6 w-[25%]">{t.headerAssumption}</th>
+                    <th className="p-6 w-[15%]">{t.headerTopic}</th>
+                    <th className="p-6 w-[30%]">{t.headerSmall}</th>
+                    <th className="p-6 w-[30%]">{t.headerBig}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-onyx-700/30">
                   {(data.progressRows || []).map((row) => (
                     <tr key={row.id} className="group transition-colors align-top">
-                      <td className="p-4 bg-bronze-500/[0.04] border-l border-onyx-700/30">
+                      <td className="p-4 bg-onyx-800/20 border-l border-onyx-700/30">
                         <textarea className="w-full h-80 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg" value={row.assumption} onChange={(e) => updateRow(row.id, 'assumption', e.target.value)} />
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.02] border-l border-onyx-700/30">
+                      <td className="p-4 bg-onyx-800/10 border-l border-onyx-700/30">
                         <textarea className="w-full h-80 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg" value={row.topic} onChange={(e) => updateRow(row.id, 'topic', e.target.value)} />
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.06] border-l border-onyx-700/30 relative">
+                      <td className="p-4 bg-onyx-800/20 border-l border-onyx-700/30 relative">
                         <div className="flex flex-col h-full gap-3">
                           <textarea className="w-full h-80 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg" value={row.smallStep} onChange={(e) => updateRow(row.id, 'smallStep', e.target.value)} />
                           <button onClick={() => handleStepAi('small', row)} className="bg-bronze-700 hover:bg-bronze-600 text-white px-5 py-2.5 rounded-lg border border-bronze-500/30 transition-all text-xs font-bold shadow-xl flex items-center gap-2 w-fit">
@@ -414,7 +474,7 @@ const App: React.FC = () => {
                           </button>
                         </div>
                       </td>
-                      <td className="p-4 bg-bronze-500/[0.08] relative">
+                      <td className="p-4 bg-onyx-800/10 relative">
                         <div className="flex flex-col h-full gap-3">
                           <div className="flex gap-2 h-full">
                             <textarea className="flex-1 h-80 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg" value={row.significantStep} onChange={(e) => updateRow(row.id, 'significantStep', e.target.value)} />
@@ -482,6 +542,37 @@ const App: React.FC = () => {
             <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="w-full mt-6 text-onyx-400 hover:text-bronze-400 transition-colors text-sm font-medium">
               {authMode === 'login' ? t.toggleToRegister : t.toggleToLogin}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Goal Writing Guide Modal */}
+      {showGoalGuide && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
+          <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-onyx-950/80 p-8 flex justify-between items-center border-b border-onyx-700/50">
+               <h3 className="text-2xl font-medium text-onyx-100 flex items-center gap-4"><Target size={24} className="text-bronze-400" /> {t.guideTitle}</h3>
+               <button onClick={() => setShowGoalGuide(false)} className="text-onyx-500 hover:text-white transition-colors bg-onyx-800 p-2 rounded-lg"><X size={24} /></button>
+            </div>
+            <div className="p-8 bg-onyx-800 overflow-y-auto">
+               <p className="text-onyx-200 text-lg mb-8 leading-relaxed font-light">{t.guideIntro}</p>
+               <div className="grid gap-6">
+                 {t.guideCriteria.map((item, idx) => (
+                   <div key={idx} className="bg-onyx-950/40 p-6 rounded-2xl border border-onyx-700/50 hover:border-bronze-500/30 transition-all group">
+                     <div className="flex items-start gap-4">
+                       <div className="mt-1 text-bronze-500"><Zap size={20} /></div>
+                       <div>
+                        <h4 className="text-bronze-400 font-bold text-lg mb-2 group-hover:text-bronze-300 transition-colors">{item.title}</h4>
+                        <p className="text-onyx-400 leading-relaxed text-sm font-light">{item.desc}</p>
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+            </div>
+            <div className="p-8 border-t border-onyx-700/50 bg-onyx-950/50 text-center">
+              <button onClick={() => setShowGoalGuide(false)} className="bg-bronze-700 text-white hover:bg-bronze-600 px-12 py-3 rounded-xl font-bold transition-all shadow-xl">{t.guideClose}</button>
+            </div>
           </div>
         </div>
       )}
