@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { OBTData, AnalysisStatus, ProgressRow } from './types';
 import { analyzeOBTMap, generateSuggestions, generateStepSuggestion } from './services/geminiService';
 import { TextAreaField } from './components/TextAreaField';
-import { BrainCircuit, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, Sparkles, ExternalLink, Mail, Lock, UserPlus, Info, Target, Zap, MessageSquare, FastForward, Flag } from 'lucide-react';
+import { BrainCircuit, LogIn, LogOut, X, Layout, Languages, ShieldAlert, ShieldCheck, ClipboardList, TrendingUp, Lightbulb, Plus, Trash2, Sparkles, ExternalLink, Mail, Lock, UserPlus, Info, Target, Zap, MessageSquare, FastForward, Flag, RefreshCw, Shield } from 'lucide-react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
@@ -29,6 +29,21 @@ const translations = {
     addRow: 'הוסף שורה חדשה',
     aiCoachTitle: 'המאמן הדיגיטלי מציע',
     close: 'סגור',
+    syncedBadge: 'סונכרן מהמפה',
+    privacyLink: 'מדיניות פרטיות',
+    privacyTitle: 'מדיניות פרטיות - OBT Map',
+    privacyContent: `1. המידע שאנו אוספים: כדי לאפשר לך לשמור ולנהל את המפה האישית שלך, אנו משתמשים בשירות האימות של Google. המידע היחיד שנשמר במערכת הוא כתובת האימייל שלך ושם המשתמש כפי שהם מופיעים בחשבון Google שלך.
+
+2. שמירת המידע ואבטחתו:
+- אחסון: המידע והתכנים שאתה מזין נשמרים בבסיס הנתונים המאובטח של Google Firebase.
+- בידוד: המערכת בנויה כך שרק אתה, באמצעות התחברות לחשבונך, יכול לגשת לנתונים שלך. אף משתמש אחר אינו יכול לראות את המפות או התובנות האישיות שלך.
+- הצפנה: כל התקשורת בין הדפדפן לשרת מוצפנת בתקן SSL.
+
+3. שימוש בבינה מלאכותית (AI): האתר משתמש ב-API של Google Gemini לצורך ניתוח הנתונים שאתה מזין והפקת תובנות. המידע מועבר לצורך העיבוד בלבד ואינו משמש לאימון מודלים ציבוריים של בינה מלאכותית.
+
+4. שיתוף מידע עם צד שלישי: אנו לא מוכרים, משכירים או משתפים את המידע האישי שלך עם אף גורם חיצוני למטרות פרסום או שיווק.
+
+5. יצירת קשר: בכל שאלה בנושא פרטיות הנתונים שלך, ניתן לפנות אלינו דרך האתר המרכזי בכתובת: kilon-consulting.com`,
     col1Title: 'OBT - המחויבות שאני מציב לעצמי',
     col1Desc: 'היעד המרכזי לשיפור עצמי - מה הדבר האחד שחשוב לי לשפר?',
     col1GuideBtn: 'מדריך לכתיבה',
@@ -47,22 +62,10 @@ const translations = {
     guideTitle: 'איך כותבים OBT איכותי?',
     guideIntro: 'OBT מוצלח הוא כזה שמתמקד בשינוי פנימי ובהתפתחות אישית, ולא רק בביצוע משימות חיצוניות.',
     guideCriteria: [
-      { 
-        title: 'מיקוד עצמי', 
-        desc: 'המחויבות צריכה להיות עליכם ועל היכולת שלכם להשתנות, ולא על ניסיון לשנות אחרים.' 
-      },
-      { 
-        title: 'שינוי התנהגותי', 
-        desc: 'הגדירו יעד שנוגע לאופן שבו אתם פועלים ומגיבים, ולא רק לתוצאה טכנית או פרויקט ספציפי.' 
-      },
-      { 
-        title: 'חיבור למשמעות', 
-        desc: 'כתבו למה השינוי הזה חשוב לכם ומה הוא יאפשר לכם להשיג או להיות ברמה המקצועית והאישית.' 
-      },
-      { 
-        title: 'יציאה מאזור הנוחות', 
-        desc: 'בחרו נושא שבאמת מאתגר אתכם ומעורר בכם תחושת דריכות - שם נמצאת ההתפתחות האמיתית.' 
-      }
+      { title: 'מיקוד עצמי', desc: 'המחויבות צריכה להיות עליכם ועל היכולת שלכם להשתנות, ולא על ניסיון לשנות אחרים.' },
+      { title: 'שינוי התנהגותי', desc: 'הגדירו יעד שנוגע לאופן שבו אתם פועלים ומגיבים, ולא רק לתוצאה טכנית או פרויקט ספציפי.' },
+      { title: 'חיבור למשמעות', desc: 'כתבו למה השינוי הזה חשוב לכם ומה הוא יאפשר לכם להשיג או להיות ברמה המקצועית והאישית.' },
+      { title: 'יציאה מאזור הנוחות', desc: 'בחרו נושא שבאמת מאתגר אתכם ומעורר בכם תחושת דריכות - שם נמצאת ההתפתחות האמיתית.' }
     ],
     guideClose: 'הבנתי, בואו נתחיל',
     link360: 'מעבר לשאלון 360',
@@ -96,6 +99,21 @@ const translations = {
     addRow: 'Add New Row',
     aiCoachTitle: 'Digital Coach Suggestions',
     close: 'Close',
+    syncedBadge: 'Synced from Map',
+    privacyLink: 'Privacy Policy',
+    privacyTitle: 'Privacy Policy - OBT Map',
+    privacyContent: `1. Information We Collect: To allow you to save and manage your personal map, we use Google's authentication service. The only information stored in the system is your email address and username as they appear in your Google account.
+
+2. Information Storage and Security:
+- Storage: The information and content you enter are stored in Google Firebase's secure database.
+- Isolation: The system is built so that only you, by logging into your account, can access your data. No other user can see your personal maps or insights.
+- Encryption: All communication between the browser and the server is encrypted using SSL.
+
+3. Use of Artificial Intelligence (AI): The site uses the Google Gemini API to analyze the data you enter and generate insights. The information is transmitted for processing only and is not used to train public AI models.
+
+4. Third-Party Data Sharing: We do not sell, rent, or share your personal information with any external party for advertising or marketing purposes.
+
+5. Contact Us: For any questions regarding your data privacy, you can contact us through the main website at: kilon-consulting.com`,
     col1Title: 'OBT - My Primary Commitment',
     col1Desc: 'What is the one thing you are committed to improving?',
     col1GuideBtn: 'Writing Guide',
@@ -155,9 +173,11 @@ const App: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   
   const isRemoteUpdate = useRef(false);
+  const lastSyncedValue = useRef<string>("");
   
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showGoalGuide, setShowGoalGuide] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -193,6 +213,56 @@ const App: React.FC = () => {
     });
     return () => unsubscribe();
   }, [user]);
+
+  // Enhanced sync logic
+  useEffect(() => {
+    if (activeTab === 'progress' && data.column4.trim() && data.column4 !== lastSyncedValue.current) {
+      const assumptionsFromMap = data.column4
+        .split(/\n|(?:\r\n)|(?:^\s*[-*•]\s*)|(?:^\s*\d+\.\s*)/m)
+        .map(s => s.trim())
+        .filter(s => s.length > 4); 
+
+      if (assumptionsFromMap.length > 0) {
+        setData(prev => {
+          const currentRows = prev.progressRows || [];
+          const existingAssumptions = currentRows.map(r => r.assumption.trim().toLowerCase());
+          
+          let updatedRows = [...currentRows];
+          let addedCount = 0;
+
+          assumptionsFromMap.forEach((mapAss, index) => {
+            const normalizedMapAss = mapAss.toLowerCase();
+            const alreadyExists = existingAssumptions.some(existing => 
+              existing.includes(normalizedMapAss) || normalizedMapAss.includes(existing)
+            );
+
+            if (!alreadyExists) {
+              if (updatedRows.length === 1 && !updatedRows[0].assumption.trim() && !updatedRows[0].topic.trim()) {
+                updatedRows[0] = { ...updatedRows[0], assumption: mapAss, isSynced: true };
+                addedCount++;
+              } else {
+                updatedRows.push({
+                  id: `sync-${Date.now()}-${index}`,
+                  assumption: mapAss,
+                  topic: '',
+                  smallStep: '',
+                  significantStep: '',
+                  isSynced: true
+                });
+                addedCount++;
+              }
+            }
+          });
+
+          if (addedCount > 0) {
+             lastSyncedValue.current = data.column4;
+             return { ...prev, progressRows: updatedRows };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [activeTab, data.column4]);
 
   useEffect(() => {
     if (!user || !isDataLoaded) return;
@@ -251,7 +321,7 @@ const App: React.FC = () => {
     setData(prev => ({
       ...prev,
       progressRows: (prev.progressRows || []).map(row => 
-        row.id === id ? { ...row, [field]: value } : row
+        row.id === id ? { ...row, [field]: value, isSynced: false } : row
       )
     }));
   };
@@ -319,7 +389,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen pb-20 relative bg-onyx-900 text-onyx-200 selection:bg-bronze-500/30 selection:text-white`} dir={t.dir}>
+    <div className={`min-h-screen pb-32 relative bg-onyx-900 text-onyx-200 selection:bg-bronze-500/30 selection:text-white`} dir={t.dir}>
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-bronze-500/5 rounded-full blur-[100px] pointer-events-none"></div>
       
       <header className="bg-onyx-900/90 backdrop-blur-md border-b border-onyx-700/50 sticky top-0 z-40">
@@ -443,26 +513,34 @@ const App: React.FC = () => {
         ) : (
           <div className="animate-fade-in max-w-[1920px] mx-auto px-4">
             <div className="mb-14 text-center">
-              <h2 className="text-3xl md:text-5xl font-bold text-onyx-100 mb-4 tracking-tight">{t.progressTitle}</h2>
+              <h2 className="text-3xl md:text-5xl font-bold text-onyx-100 mb-4 tracking-tight flex items-center justify-center gap-4">
+                <TrendingUp size={48} className="text-bronze-500" />
+                {t.progressTitle}
+              </h2>
               <p className="text-onyx-400 text-lg md:text-xl font-light">{t.progressSub}</p>
             </div>
 
-            {/* Desktop View */}
+            {/* Desktop View Table */}
             <div className="hidden md:block bg-onyx-800/20 rounded-3xl border border-onyx-700/50 shadow-2xl backdrop-blur-md overflow-hidden">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-onyx-950 text-onyx-100 text-lg font-bold border-b border-onyx-700/50">
-                    <th className="p-6 w-[25%]">{t.headerAssumption}</th>
-                    <th className="p-6 w-[15%]">{t.headerTopic}</th>
-                    <th className="p-6 w-[30%]">{t.headerSmall}</th>
-                    <th className="p-6 w-[30%]">{t.headerBig}</th>
+                    <th className="p-6 w-[25%] text-right">{t.headerAssumption}</th>
+                    <th className="p-6 w-[15%] text-right">{t.headerTopic}</th>
+                    <th className="p-6 w-[30%] text-right">{t.headerSmall}</th>
+                    <th className="p-6 w-[30%] text-right">{t.headerBig}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-onyx-700/30">
                   {(data.progressRows || []).map((row) => (
                     <tr key={row.id} className="group transition-colors align-top">
-                      <td className="p-4 bg-onyx-800/20 border-l border-onyx-700/30">
-                        <textarea className="w-full h-80 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg" value={row.assumption} onChange={(e) => updateRow(row.id, 'assumption', e.target.value)} />
+                      <td className="p-4 bg-onyx-800/20 border-l border-onyx-700/30 relative">
+                        { row.isSynced && (
+                          <div className="absolute top-1 right-4 flex items-center gap-1.5 text-[10px] bg-bronze-600/20 text-bronze-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter animate-pulse">
+                            <RefreshCw size={8} /> {t.syncedBadge}
+                          </div>
+                        )}
+                        <textarea className="w-full h-80 p-4 pt-6 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg" value={row.assumption} onChange={(e) => updateRow(row.id, 'assumption', e.target.value)} />
                       </td>
                       <td className="p-4 bg-onyx-800/10 border-l border-onyx-700/30">
                         <textarea className="w-full h-80 p-4 bg-onyx-950/90 border-2 border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none font-medium text-lg leading-relaxed shadow-lg" value={row.topic} onChange={(e) => updateRow(row.id, 'topic', e.target.value)} />
@@ -493,42 +571,49 @@ const App: React.FC = () => {
             </div>
 
             {/* Mobile View (Cards) */}
-            <div className="md:hidden space-y-8">
+            <div className="md:hidden space-y-10">
               {(data.progressRows || []).map((row) => (
-                <div key={row.id} className="bg-onyx-800/40 border border-onyx-700 rounded-3xl p-6 shadow-xl space-y-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-1 bg-bronze-500 h-full opacity-50"></div>
+                <div key={row.id} className="bg-onyx-800/60 border border-onyx-700/80 rounded-[2.5rem] p-7 shadow-2xl space-y-8 relative overflow-hidden backdrop-blur-xl">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-bronze-500/5 -mr-12 -mt-12 rounded-full blur-2xl"></div>
                   
-                  <div className="flex justify-between items-center border-b border-onyx-700 pb-3">
-                    <span className="text-onyx-400 text-xs font-bold uppercase tracking-widest">{lang === 'he' ? 'מעקב התקדמות' : 'Progress Track'}</span>
-                    <button onClick={() => deleteRow(row.id)} className="text-onyx-600 hover:text-red-400 transition-colors p-1"><Trash2 size={20} /></button>
+                  <div className="flex justify-between items-center border-b border-onyx-700 pb-4">
+                    <div className="flex items-center gap-3">
+                       <span className="text-onyx-400 text-xs font-black uppercase tracking-[0.2em]">{lang === 'he' ? 'מעקב' : 'Track'}</span>
+                       { row.isSynced && (
+                          <span className="text-[9px] bg-bronze-500/20 text-bronze-400 px-3 py-1 rounded-full font-black uppercase flex items-center gap-1.5">
+                            <RefreshCw size={10} /> {t.syncedBadge}
+                          </span>
+                       )}
+                    </div>
+                    <button onClick={() => deleteRow(row.id)} className="text-onyx-600 hover:text-red-400 transition-all p-2 bg-onyx-900/50 rounded-xl"><Trash2 size={20} /></button>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-bronze-400 text-sm font-bold flex items-center gap-2"><Target size={14} /> {t.headerAssumption}</label>
-                    <textarea className="w-full h-32 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.assumption} onChange={(e) => updateRow(row.id, 'assumption', e.target.value)} />
+                  <div className="space-y-3">
+                    <label className="text-bronze-400 text-sm font-black flex items-center gap-3"><Target size={18} /> {t.headerAssumption}</label>
+                    <textarea className="w-full h-40 p-5 bg-onyx-950/80 border border-onyx-700/50 rounded-2xl text-onyx-100 outline-none focus:border-bronze-500/50 transition-all resize-none text-base leading-relaxed" value={row.assumption} onChange={(e) => updateRow(row.id, 'assumption', e.target.value)} />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-onyx-300 text-sm font-bold flex items-center gap-2"><MessageSquare size={14} /> {t.headerTopic}</label>
-                    <textarea className="w-full h-24 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.topic} onChange={(e) => updateRow(row.id, 'topic', e.target.value)} />
+                  <div className="space-y-3">
+                    <label className="text-onyx-300 text-sm font-black flex items-center gap-3"><MessageSquare size={18} /> {t.headerTopic}</label>
+                    <textarea className="w-full h-24 p-5 bg-onyx-950/80 border border-onyx-700/50 rounded-2xl text-onyx-100 outline-none focus:border-bronze-500/50 transition-all resize-none text-base" value={row.topic} onChange={(e) => updateRow(row.id, 'topic', e.target.value)} />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-onyx-300 text-sm font-bold flex items-center gap-2"><FastForward size={14} /> {t.headerSmall}</label>
-                    <div className="space-y-3">
-                      <textarea className="w-full h-32 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.smallStep} onChange={(e) => updateRow(row.id, 'smallStep', e.target.value)} />
-                      <button onClick={() => handleStepAi('small', row)} className="bg-onyx-800 hover:bg-onyx-700 text-bronze-400 px-4 py-2 rounded-lg border border-onyx-700 transition-all text-xs font-bold flex items-center gap-2">
-                        <Sparkles size={14} /> AI Suggestions
+                  <div className="space-y-3">
+                    <label className="text-onyx-300 text-sm font-black flex items-center gap-3"><FastForward size={18} className="text-bronze-600" /> {t.headerSmall}</label>
+                    <div className="space-y-4">
+                      <textarea className="w-full h-40 p-5 bg-onyx-950/80 border border-onyx-700/50 rounded-2xl text-onyx-100 outline-none focus:border-bronze-500/50 transition-all resize-none text-base leading-relaxed" value={row.smallStep} onChange={(e) => updateRow(row.id, 'smallStep', e.target.value)} />
+                      <button onClick={() => handleStepAi('small', row)} className="w-full bg-onyx-900/80 hover:bg-onyx-800 text-bronze-400 px-6 py-4 rounded-xl border border-onyx-700 transition-all text-sm font-bold flex items-center justify-center gap-3">
+                        <Sparkles size={16} /> AI Suggestions
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-bronze-500 text-sm font-bold flex items-center gap-2"><Flag size={14} /> {t.headerBig}</label>
-                    <div className="space-y-3">
-                      <textarea className="w-full h-32 p-4 bg-onyx-950/60 border border-onyx-700 rounded-xl text-onyx-100 outline-none focus:border-bronze-500 transition-all resize-none text-base" value={row.significantStep} onChange={(e) => updateRow(row.id, 'significantStep', e.target.value)} />
-                      <button onClick={() => handleStepAi('big', row)} className="bg-bronze-700 hover:bg-bronze-600 text-white px-4 py-2 rounded-lg transition-all text-xs font-bold flex items-center gap-2 shadow-lg">
-                        <Sparkles size={14} /> AI Suggestions
+                  <div className="space-y-3">
+                    <label className="text-bronze-500 text-sm font-black flex items-center gap-3"><Flag size={18} /> {t.headerBig}</label>
+                    <div className="space-y-4">
+                      <textarea className="w-full h-40 p-5 bg-onyx-950/80 border border-onyx-700/50 rounded-2xl text-onyx-100 outline-none focus:border-bronze-500/50 transition-all resize-none text-base leading-relaxed" value={row.significantStep} onChange={(e) => updateRow(row.id, 'significantStep', e.target.value)} />
+                      <button onClick={() => handleStepAi('big', row)} className="w-full bg-bronze-700 hover:bg-bronze-600 text-white px-6 py-4 rounded-xl transition-all text-sm font-bold flex items-center justify-center gap-3 shadow-2xl">
+                        <Sparkles size={16} /> AI Suggestions
                       </button>
                     </div>
                   </div>
@@ -536,16 +621,43 @@ const App: React.FC = () => {
               ))}
             </div>
 
-            <div className="p-10 flex justify-center mt-6">
-              <button onClick={addRow} className="flex items-center gap-3 bg-onyx-800 hover:bg-onyx-700 text-onyx-100 px-10 py-4 rounded-2xl border border-onyx-700 transition-all font-bold text-lg shadow-2xl">
-                <Plus size={24} /> {t.addRow}
+            <div className="p-16 flex justify-center mt-6">
+              <button onClick={addRow} className="flex items-center gap-4 bg-onyx-800 hover:bg-onyx-700 text-onyx-100 px-12 py-5 rounded-[2rem] border border-onyx-700 transition-all font-black text-xl shadow-2xl group">
+                <Plus size={28} className="group-hover:rotate-90 transition-transform" /> {t.addRow}
               </button>
             </div>
           </div>
         )}
       </main>
 
-      {/* Modals remain the same... */}
+      <footer className="mt-auto py-8 border-t border-onyx-700/30 text-center">
+        <button 
+          onClick={() => setShowPrivacyModal(true)} 
+          className="text-onyx-500 hover:text-bronze-400 transition-colors text-xs font-medium uppercase tracking-widest flex items-center gap-2 mx-auto"
+        >
+          <Shield size={12} /> {t.privacyLink}
+        </button>
+      </footer>
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
+          <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-2xl w-full p-0 relative overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="bg-onyx-950/80 p-6 flex justify-between items-center border-b border-onyx-700/50">
+               <h3 className="text-xl font-bold text-onyx-100 flex items-center gap-3"><Shield size={20} className="text-bronze-400" /> {t.privacyTitle}</h3>
+               <button onClick={() => setShowPrivacyModal(false)} className="text-onyx-500 hover:text-white transition-colors bg-onyx-800 p-2 rounded-lg"><X size={20} /></button>
+            </div>
+            <div className="p-8 overflow-y-auto bg-onyx-800 text-onyx-300 text-sm font-light leading-relaxed whitespace-pre-wrap">
+              {t.privacyContent}
+            </div>
+            <div className="p-6 border-t border-onyx-700/50 bg-onyx-950/50 text-center">
+              <button onClick={() => setShowPrivacyModal(false)} className="bg-onyx-100 text-onyx-950 hover:bg-white px-10 py-2 rounded-xl font-bold transition-all shadow-xl">{t.close}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" dir={t.dir}>
           <div className="bg-onyx-800 rounded-3xl border border-onyx-700 shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
